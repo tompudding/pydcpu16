@@ -1,0 +1,3 @@
+This is a very simple pygame based emulator for the DCPU16, the cpu from Notch's new game 0x10c. It has keyboard and video support though it's not especially fast.
+
+There's also a slightly rubbish assembler, which you probably shouldn't use.
