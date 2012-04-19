@@ -1,13 +1,15 @@
 import sys,struct,pygame,time,array
 from pygame.locals import *
+from optparse import OptionParser
 
 pygame.init()
 scale_factor = 8
-screen = pygame.display.set_mode((128*scale_factor, 96*scale_factor))
+
 dirty_rects = []
 font_surface = pygame.Surface((4,8),depth=8)
 font_surface.set_palette(((0, 0, 0, 255),)*256)
 font_surface.set_palette(((0,0,0,255),(255, 255, 255, 255)))
+font_surfaces = {}
 
 pixels = pygame.PixelArray(font_surface)
 
@@ -42,6 +44,7 @@ class CPU(object):
         self.NonBasic     = {0x1 : (self.Jsr,False),}
         self.condition = True
         self.keypointer = 0
+        self.dirty_rects = {}
 
     def step(self):
         instruction = self.memory[self.pc[0]]
@@ -65,7 +68,6 @@ class CPU(object):
                 self.condition = True
         else:
             a,b = (instruction>>4)&0x3f,(instruction>>10)&0x3f
-            #print opcode,hex(a),hex(b),self.Instructions[opcode][0].__name__,self.condition
             a_array,a_index = self.process_arg(a)
             b_array,b_index = self.process_arg(b)
             if self.condition:
@@ -74,13 +76,12 @@ class CPU(object):
                 if a_array is self.memory and sets:
                     self.dirty(a_index)
             else:
-                #we're skipping due to an if
+                #we're skipping due to an unsatisfied if
                 self.condition = True
 
     def key_press(self,key):
         pointer_pos = 0x9010
         
-        #the buffer is full, so start again
         buffer_pos = 0x9000+self.keypointer
         if self.memory[buffer_pos] != 0:
             return
@@ -94,23 +95,20 @@ class CPU(object):
             pos = index - 0x8000
             x = (pos&0x1f)*4
             y = (pos/32)*8
-            dirty = pygame.Rect(x*scale_factor,y*scale_factor,(x+4)*scale_factor,(y+8)*scale_factor)
+            dirty = (x*scale_factor,y*scale_factor,(x+4)*scale_factor,(y+8)*scale_factor)
             letter = self.memory[index]
             text_colour = (letter>>12)&0xf
             back_colour = (letter>>8)&0xf
             text_colour,back_colour = (NumToRGB(c) for c in (text_colour,back_colour))
             letter = letter&0x7f
-            #print 'draw',pos,x,y,hex(letter)
 
             tile = font_surfaces[letter&0x7f]
             tile.set_palette((back_colour,text_colour))
             screen.blit(tile,(x*scale_factor,y*scale_factor))
-            pygame.display.update(dirty)
-            #pygame.display.flip()
+            self.dirty_rects[dirty] = True
         elif index >= 0x8180 and index < 0x8280:
             #it's an update to the font
             SetPixels(pixels,self.memory[(index&0xfffe):(index&0xfffe)+2])
-            #print 'font_update',index
             font_surfaces[(index-0x8180)/2] = pygame.transform.scale(font_surface,(4*scale_factor,8*scale_factor))
             
 
@@ -223,8 +221,7 @@ class CPU(object):
 
     def Ifb(self,a_array,a_index,b_array,b_index):
         self.condition = ((a_array[a_index]&b_array[b_index]) != 0)
-        self.cycles += (2 + 1 if not self.condition else 0)
-                    
+        self.cycles += (2 + 1 if not self.condition else 0)       
 
     def process_arg(self,x):
         if x < 8:
@@ -271,77 +268,119 @@ def SetPixels(pixels,words):
         for j in xrange(16):
             #the next line is so obvious it doesn't need a comment
             pixels[i*2+1-(j/8)][j%8] = ((word>>j)&1)
-            
-memory = array.array('H',[0 for i in xrange(0x10000)])
-pos = 0
-done = False
-while not done:
-    datum = sys.stdin.read(2)
-    if len(datum) == 0:
-        done = True
-    if len(datum) != 2:
-        datum = datum + '\x00'*(2-len(datum))
-    memory[pos] = struct.unpack('>H',datum)[0]
-    pos += 1
-    if pos >= len(memory):
-        done = True
+    
 
-cpu = CPU(memory)
+def main():
+    global scale_factor,screen
+    parser = OptionParser(usage="usage: %prog [options] filename",
+                          version="%prog 1.0")
+    parser.add_option("-s", "--scale_factor",
+                      action="store",
+                      dest="scale_factor",
+                      default=4,
+                      help="scale the native size of 128x96 by this amount")
+    parser.add_option("-t", "--target_frequency",
+                      action="store",
+                      dest="target_frequency",
+                      default=100000,
+                      help="Attempt to run the emulator at this frequency (default = 100000)")
+    parser.add_option("-r", "--hardware_rate",
+                      action="store",
+                      dest="hardware_rate",
+                      default=2000,
+                      help="How many CPU cycles between hardware updates? Increasing this will increase maximum simulation speed at the expense of a less frequently updated video window and keyboard buffer (default = 2000)")
+    parser.add_option("-f", "--show_frequency",
+                      action="store_true",
+                      dest="show_freq",
+                      default=False,
+                      help="Periodically print the actually frequency to the console (default = Off)")
+    (options, args) = parser.parse_args()
 
+    if len(args) != 1:
+        parser.error("wrong number of arguments")
+    
+    scale_factor = int(options.scale_factor)
+    screen = pygame.display.set_mode((128*scale_factor, 96*scale_factor))
 
-pygame.display.set_caption('fd')
-pygame.mouse.set_visible(0)
-
-background = pygame.Surface(screen.get_size())
-background = background.convert()
-background.fill((0, 0, 0))
-screen.blit(background, (0, 0))
-
-last = time.time()
-last_cycles = 0
-count = 0
-font_data = {i:[0,0] for i in xrange(128)}
-font_surfaces = {}
-
-with open('default_font.txt','rb') as f:
-    for line in f:
-        i,dummy,word1,word2 = line.strip().split()
-        i,word1,word2 = [int(v,16) for v in i,word1,word2]
-        font_data[i] = [word1,word2]
-        SetPixels(pixels,font_data[i])
-        font_surfaces[i] = pygame.transform.scale(font_surface,(4*scale_factor,8*scale_factor))
-
-clock = pygame.time.Clock()
-done = False
-
-while not done:
-    cpu.step()
-
-    if cpu.cycles > 1000:
-        #keep to 100kHz
-        clock.tick(100)
-        print clock.get_fps()
-        for event in pygame.event.get():
-            if event.type == pygame.locals.QUIT:
+    memory = array.array('H',[0 for i in xrange(0x10000)])
+    pos = 0
+    done = False
+    with open(args[0],'rb') as f:
+        while not done:
+            datum = f.read(2)
+            if len(datum) == 0:
                 done = True
-                break
-            
-            if (event.type == KEYDOWN):
-                if event.key == K_ESCAPE:
+            if len(datum) != 2:
+                datum = datum + '\x00'*(2-len(datum))
+            memory[pos] = struct.unpack('>H',datum)[0]
+            pos += 1
+            if pos >= len(memory):
+                done = True
+
+    cpu = CPU(memory)
+
+    pygame.display.set_caption('DCPU-16 pygame emulator')
+    pygame.mouse.set_visible(0)
+
+    background = pygame.Surface(screen.get_size())
+    background = background.convert()
+    background.fill((0, 0, 0))
+    screen.blit(background, (0, 0))
+
+    font_data = {i:[0,0] for i in xrange(128)}
+
+    with open('default_font.txt','rb') as f:
+        for line in f:
+            i,dummy,word1,word2 = line.strip().split()
+            i,word1,word2 = [int(v,16) for v in i,word1,word2]
+            font_data[i] = [word1,word2]
+            SetPixels(pixels,font_data[i])
+            font_surfaces[i] = pygame.transform.scale(font_surface,(4*scale_factor,8*scale_factor))
+
+    clock = pygame.time.Clock()
+    done = False
+    count = 0
+    target = int(options.target_frequency)
+    poll_clock = int(options.hardware_rate)
+    tick_amount = target/poll_clock
+
+    while not done:
+        cpu.step()
+
+        if cpu.cycles > poll_clock:
+            #keep to 100kHz
+            clock.tick(tick_amount)
+            if count > 50 and options.show_freq:
+                print 'CPU frequency : %.2f kHz' % ((clock.get_fps()*poll_clock)/1000)
+                count = 0
+            count += 1
+            for event in pygame.event.get():
+                if event.type == pygame.locals.QUIT:
                     done = True
                     break
-                elif event.key == K_RETURN:
-                    key = 0xa
-                elif event.key == K_LEFT:
-                    key = 0x25
-                elif event.key == K_RIGHT:
-                    key = 0x27
-                elif event.key == K_UP:
-                    key = 0x26
-                elif event.key == K_DOWN:
-                    key = 0x28
-                else:
-                    key = event.key
-                cpu.key_press(key)
-        cpu.cycles = 0
 
+                if (event.type == KEYDOWN):
+                    if event.key == K_ESCAPE:
+                        done = True
+                        break
+                    elif event.key == K_RETURN:
+                        key = 0xa
+                    elif event.key == K_LEFT:
+                        key = 0x25
+                    elif event.key == K_RIGHT:
+                        key = 0x27
+                    elif event.key == K_UP:
+                        key = 0x26
+                    elif event.key == K_DOWN:
+                        key = 0x28
+                    else:
+                        key = event.key
+                    cpu.key_press(key)
+            cpu.cycles = 0
+            if len(cpu.dirty_rects) != 0:
+                pygame.display.update(cpu.dirty_rects.keys())
+                cpu.dirty_rects = {}
+
+
+if __name__ == '__main__':
+    main()
