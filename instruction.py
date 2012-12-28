@@ -106,21 +106,21 @@ class Instruction(object):
 
 class BasicInstruction(Instruction):
     def __init__(self,opcode,args):
-        a,b = args
+        b,a = args
         self.opcode = opcode
         self.words = [self.opcode]
-        self.a = self.ProcessArg(a)
         self.b = self.ProcessArg(b)
-        print 'args',self.a,self.b,self.words
+        self.a = self.ProcessArg(a)
+        print 'args',self.b,self.a,self.words
 
     def Emit(self):
-        self.words[0] |= ((self.a<<4) | (self.b<<10))
+        self.words[0] |= ((self.b<<4) | (self.a<<10))
         return ''.join((struct.pack('>H',w) for w in self.words))
 
     def FillLabels(self,labels):
         super(BasicInstruction,self).FillLabels(labels)
-        self.a = CheckLabel(self.a,labels)
         self.b = CheckLabel(self.b,labels)
+        self.a = CheckLabel(self.a,labels)
 
 
 class NonBasicInstruction(Instruction):
@@ -141,49 +141,73 @@ class NonBasicInstruction(Instruction):
         
 class SetInstruction(BasicInstruction):
     def __init__(self,args):
-        super(SetInstruction,self).__init__(1,args)
+        super(SetInstruction,self).__init__(0x01,args)
 class AddInstruction(BasicInstruction):
     def __init__(self,args):
-        super(AddInstruction,self).__init__(2,args)
+        super(AddInstruction,self).__init__(0x02,args)
 class SubInstruction(BasicInstruction):
     def __init__(self,args):
-        super(SubInstruction,self).__init__(3,args)
+        super(SubInstruction,self).__init__(0x03,args)
 class MulInstruction(BasicInstruction):
     def __init__(self,args):
-        super(MulInstruction,self).__init__(4,args)
+        super(MulInstruction,self).__init__(0x04,args)
+class MliInstruction(BasicInstruction):
+    def __init__(self,args):
+        super(MliInstruction,self).__init__(0x05,args)
 class DivInstruction(BasicInstruction):
     def __init__(self,args):
-        super(DivInstruction,self).__init__(5,args)
+        super(DivInstruction,self).__init__(0x06,args)
+class DviInstruction(BasicInstruction):
+    def __init__(self,args):
+        super(DviInstruction,self).__init__(0x07,args)
 class ModInstruction(BasicInstruction):
     def __init__(self,args):
-        super(ModInstruction,self).__init__(6,args)
-class ShlInstruction(BasicInstruction):
+        super(ModInstruction,self).__init__(0x08,args)
+class MdiInstruction(BasicInstruction):
     def __init__(self,args):
-        super(ShlInstruction,self).__init__(7,args)
-class ShrInstruction(BasicInstruction):
-    def __init__(self,args):
-        super(ShrInstruction,self).__init__(8,args)
+        super(MdiInstruction,self).__init__(0x09,args)
 class AndInstruction(BasicInstruction):
     def __init__(self,args):
-        super(AndInstruction,self).__init__(9,args)
+        super(AndInstruction,self).__init__(0x0a,args)
 class BorInstruction(BasicInstruction):
     def __init__(self,args):
-        super(BorInstruction,self).__init__(10,args)
+        super(BorInstruction,self).__init__(0x0b,args)
 class XorInstruction(BasicInstruction):
     def __init__(self,args):
-        super(XorInstruction,self).__init__(11,args)
-class IfeInstruction(BasicInstruction):
+        super(XorInstruction,self).__init__(0x0c,args)
+class ShrInstruction(BasicInstruction):
     def __init__(self,args):
-        super(IfeInstruction,self).__init__(12,args)
-class IfnInstruction(BasicInstruction):
+        super(ShrInstruction,self).__init__(0x0d,args)
+class AsrInstruction(BasicInstruction):
     def __init__(self,args):
-        super(IfnInstruction,self).__init__(13,args)
-class IfgInstruction(BasicInstruction):
+        super(AsrInstruction,self).__init__(0x0e,args)
+class ShlInstruction(BasicInstruction):
     def __init__(self,args):
-        super(IfgInstruction,self).__init__(14,args)
+        super(ShlInstruction,self).__init__(0x0f,args)
 class IfbInstruction(BasicInstruction):
     def __init__(self,args):
-        super(IfbInstruction,self).__init__(15,args)
+        super(IfbInstruction,self).__init__(0x10,args)
+class IfcInstruction(BasicInstruction):
+    def __init__(self,args):
+        super(IfcInstruction,self).__init__(0x11,args)
+class IfeInstruction(BasicInstruction):
+    def __init__(self,args):
+        super(IfeInstruction,self).__init__(0x12,args)
+class IfnInstruction(BasicInstruction):
+    def __init__(self,args):
+        super(IfnInstruction,self).__init__(0x13,args)
+class IfgInstruction(BasicInstruction):
+    def __init__(self,args):
+        super(IfgInstruction,self).__init__(0x14,args)
+class IfaInstruction(BasicInstruction):
+    def __init__(self,args):
+        super(IfaInstruction,self).__init__(0x15,args)
+class IflInstruction(BasicInstruction):
+    def __init__(self,args):
+        super(IflInstruction,self).__init__(0x16,args)
+class IfuInstruction(BasicInstruction):
+    def __init__(self,args):
+        super(IfuInstruction,self).__init__(0x17,args)
 
 class JsrInstruction(NonBasicInstruction):
     def __init__(self,args):

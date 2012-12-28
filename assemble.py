@@ -1,5 +1,5 @@
 import sys,struct
-from instruction import *
+import instruction
 
 labels = {}
 pos = 0
@@ -7,23 +7,23 @@ line_number = 0
 out = []
 
 
-instructions = {'set':SetInstruction,
-                'add':AddInstruction,
-                'sub':SubInstruction,
-                'mul':MulInstruction,
-                'div':DivInstruction,
-                'mod':ModInstruction,
-                'shl':ShlInstruction,
-                'shr':ShrInstruction,
-                'and':AndInstruction,
-                'bor':BorInstruction,
-                'xor':XorInstruction,
-                'ife':IfeInstruction,
-                'ifn':IfnInstruction,
-                'ifg':IfgInstruction,
-                'ifb':IfbInstruction,
-                'jsr':JsrInstruction,
-                'dat':Data}
+instructions = {'set':instruction.SetInstruction,
+                'add':instruction.AddInstruction,
+                'sub':instruction.SubInstruction,
+                'mul':instruction.MulInstruction,
+                'div':instruction.DivInstruction,
+                'mod':instruction.ModInstruction,
+                'shl':instruction.ShlInstruction,
+                'shr':instruction.ShrInstruction,
+                'and':instruction.AndInstruction,
+                'bor':instruction.BorInstruction,
+                'xor':instruction.XorInstruction,
+                'ife':instruction.IfeInstruction,
+                'ifn':instruction.IfnInstruction,
+                'ifg':instruction.IfgInstruction,
+                'ifb':instruction.IfbInstruction,
+                'jsr':instruction.JsrInstruction,
+                'dat':instruction.Data}
 
 for line_number,line in enumerate(sys.stdin):
     line = line.strip().split(';')[0].strip()
@@ -72,7 +72,7 @@ for line_number,line in enumerate(sys.stdin):
     instruction = instruction.lower()
     args = parts
     
-    print line,args
+    print instruction,args
     instruction = instruction.strip(',')
     try:
         instruction = instructions[instruction]
@@ -91,7 +91,7 @@ for line_number,line in enumerate(sys.stdin):
 try:
     for i,instruction in enumerate(out):
         instruction.FillLabels(labels)
-except UnknownLabel as e:
+except instruction.UnknownLabel as e:
     print 'unknown label %s in instruction %d'  % (e.label,i)
     raise SystemExit
 
