@@ -18,7 +18,9 @@ def CheckLabel(x,labels):
         return x
 
 class Instruction(object):
-    def ProcessArg(self,arg):
+    opcode    = None
+    pneumonic = None
+    def ProcessArg(self,arg,allow_literals):
         if not arg:
             raise InvalidArg
         arg = arg.strip()
@@ -44,7 +46,7 @@ class Instruction(object):
     
         try:
             literal = int(arg,0)
-            if literal > 0x1f:
+            if literal > 0x1f and allow_literals:
             #if 1:
                 self.words.append(literal)
                 return 0x1e if deref else 0x1f
@@ -105,16 +107,15 @@ class Instruction(object):
 
 
 class BasicInstruction(Instruction):
-    def __init__(self,opcode,args):
+    def __init__(self,args):
         b,a = args
-        self.opcode = opcode
         self.words = [self.opcode]
-        self.b = self.ProcessArg(b)
-        self.a = self.ProcessArg(a)
+        self.b = self.ProcessArg(b,allow_literals = False)&0x1f
+        self.a = self.ProcessArg(a,allow_literals = True)&0x3f
         print 'args',self.b,self.a,self.words
 
     def Emit(self):
-        self.words[0] |= ((self.b<<4) | (self.a<<10))
+        self.words[0] |= ((self.b<<5) | (self.a<<10))
         return ''.join((struct.pack('>H',w) for w in self.words))
 
     def FillLabels(self,labels):
@@ -124,11 +125,10 @@ class BasicInstruction(Instruction):
 
 
 class NonBasicInstruction(Instruction):
-    def __init__(self,opcode,args):
+    def __init__(self,args):
         a = args[0]
-        self.opcode = opcode
-        self.words = [self.opcode << 4]
-        self.a = self.ProcessArg(a)
+        self.words = [self.opcode << 5]
+        self.a = self.ProcessArg(a,allow_literals = True)
 
     def Emit(self):
         self.words[0] |= (self.a<<10)
@@ -140,80 +140,152 @@ class NonBasicInstruction(Instruction):
 
         
 class SetInstruction(BasicInstruction):
-    def __init__(self,args):
-        super(SetInstruction,self).__init__(0x01,args)
+    opcode    = 1
+    pneumonic = 'set'
+
 class AddInstruction(BasicInstruction):
-    def __init__(self,args):
-        super(AddInstruction,self).__init__(0x02,args)
+    opcode    = 2
+    pneumonic = 'add'
+
 class SubInstruction(BasicInstruction):
-    def __init__(self,args):
-        super(SubInstruction,self).__init__(0x03,args)
+    opcode    = 3
+    pneumonic = 'sub'
+
 class MulInstruction(BasicInstruction):
-    def __init__(self,args):
-        super(MulInstruction,self).__init__(0x04,args)
+    opcode    = 4
+    pneumonic = 'mul'
+
 class MliInstruction(BasicInstruction):
-    def __init__(self,args):
-        super(MliInstruction,self).__init__(0x05,args)
+    opcode    = 5
+    pneumonic = 'mli'
+
 class DivInstruction(BasicInstruction):
-    def __init__(self,args):
-        super(DivInstruction,self).__init__(0x06,args)
+    opcode    = 6
+    pneumonic = 'div'
+
 class DviInstruction(BasicInstruction):
-    def __init__(self,args):
-        super(DviInstruction,self).__init__(0x07,args)
+    opcode    = 7
+    pneumonic = 'dvi'
+
 class ModInstruction(BasicInstruction):
-    def __init__(self,args):
-        super(ModInstruction,self).__init__(0x08,args)
+    opcode    = 8
+    pneumonic = 'mod'
+
 class MdiInstruction(BasicInstruction):
-    def __init__(self,args):
-        super(MdiInstruction,self).__init__(0x09,args)
+    opcode    = 9
+    pneumonic = 'mdi'
+
 class AndInstruction(BasicInstruction):
-    def __init__(self,args):
-        super(AndInstruction,self).__init__(0x0a,args)
+    opcode    = 10
+    pneumonic = 'and'
+
 class BorInstruction(BasicInstruction):
-    def __init__(self,args):
-        super(BorInstruction,self).__init__(0x0b,args)
+    opcode    = 11
+    pneumonic = 'bor'
+
 class XorInstruction(BasicInstruction):
-    def __init__(self,args):
-        super(XorInstruction,self).__init__(0x0c,args)
+    opcode    = 12
+    pneumonic = 'xor'
+
 class ShrInstruction(BasicInstruction):
-    def __init__(self,args):
-        super(ShrInstruction,self).__init__(0x0d,args)
+    opcode    = 13
+    pneumonic = 'shr'
+
 class AsrInstruction(BasicInstruction):
-    def __init__(self,args):
-        super(AsrInstruction,self).__init__(0x0e,args)
+    opcode    = 14
+    pneumonic = 'asr'
+
 class ShlInstruction(BasicInstruction):
-    def __init__(self,args):
-        super(ShlInstruction,self).__init__(0x0f,args)
+    opcode    = 15
+    pneumonic = 'shl'
+
 class IfbInstruction(BasicInstruction):
-    def __init__(self,args):
-        super(IfbInstruction,self).__init__(0x10,args)
+    opcode    = 16
+    pneumonic = 'ifb'
+
 class IfcInstruction(BasicInstruction):
-    def __init__(self,args):
-        super(IfcInstruction,self).__init__(0x11,args)
+    opcode    = 17
+    pneumonic = 'ifc'
+
 class IfeInstruction(BasicInstruction):
-    def __init__(self,args):
-        super(IfeInstruction,self).__init__(0x12,args)
+    opcode    = 18
+    pneumonic = 'ife'
+
 class IfnInstruction(BasicInstruction):
-    def __init__(self,args):
-        super(IfnInstruction,self).__init__(0x13,args)
+    opcode    = 19
+    pneumonic = 'ifn'
+
 class IfgInstruction(BasicInstruction):
-    def __init__(self,args):
-        super(IfgInstruction,self).__init__(0x14,args)
+    opcode    = 20
+    pneumonic = 'ifg'
+
 class IfaInstruction(BasicInstruction):
-    def __init__(self,args):
-        super(IfaInstruction,self).__init__(0x15,args)
+    opcode    = 21
+    pneumonic = 'ifa'
+
 class IflInstruction(BasicInstruction):
-    def __init__(self,args):
-        super(IflInstruction,self).__init__(0x16,args)
+    opcode    = 22
+    pneumonic = 'ifl'
+
 class IfuInstruction(BasicInstruction):
-    def __init__(self,args):
-        super(IfuInstruction,self).__init__(0x17,args)
+    opcode    = 23
+    pneumonic = 'ifu'
+
+class AdxInstruction(BasicInstruction):
+    opcode    = 26
+    pneumonic = 'adx'
+
+class SbxInstruction(BasicInstruction):
+    opcode    = 27
+    pneumonic = 'sbx'
+
+class StiInstruction(BasicInstruction):
+    opcode    = 30
+    pneumonic = 'sti'
+
+class StiInstruction(BasicInstruction):
+    opcode    = 31
+    pneumonic = 'sti'
+
 
 class JsrInstruction(NonBasicInstruction):
-    def __init__(self,args):
-        super(JsrInstruction,self).__init__(1,args)
+    opcode    = 1
+    pneumonic = 'jsr'
+
+class IntInstruction(NonBasicInstruction):
+    opcode    = 8
+    pneumonic = 'int'
+
+class IagInstruction(NonBasicInstruction):
+    opcode    = 9
+    pneumonic = 'iag'
+
+class IasInstruction(NonBasicInstruction):
+    opcode    = 10
+    pneumonic = 'ias'
+
+class RfiInstruction(NonBasicInstruction):
+    opcode    = 11
+    pneumonic = 'rfi'
+
+class IaqInstruction(NonBasicInstruction):
+    opcode    = 12
+    pneumonic = 'iaq'
+
+class HwnInstruction(NonBasicInstruction):
+    opcode    = 16
+    pneumonic = 'hwn'
+
+class HwqInstruction(NonBasicInstruction):
+    opcode    = 17
+    pneumonic = 'hwq'
+
+class HwiInstruction(NonBasicInstruction):
+    opcode    = 18
+    pneumonic = 'hwi'
 
 class Data(Instruction):
+    pneumonic = 'dat'
     def __init__(self,args):
         self.words = []
         for arg in args:

@@ -1,29 +1,18 @@
 import sys,struct
 import instruction
+import inspect
 
 labels = {}
 pos = 0
 line_number = 0
 out = []
+instructions = {}
 
-
-instructions = {'set':instruction.SetInstruction,
-                'add':instruction.AddInstruction,
-                'sub':instruction.SubInstruction,
-                'mul':instruction.MulInstruction,
-                'div':instruction.DivInstruction,
-                'mod':instruction.ModInstruction,
-                'shl':instruction.ShlInstruction,
-                'shr':instruction.ShrInstruction,
-                'and':instruction.AndInstruction,
-                'bor':instruction.BorInstruction,
-                'xor':instruction.XorInstruction,
-                'ife':instruction.IfeInstruction,
-                'ifn':instruction.IfnInstruction,
-                'ifg':instruction.IfgInstruction,
-                'ifb':instruction.IfbInstruction,
-                'jsr':instruction.JsrInstruction,
-                'dat':instruction.Data}
+for (name,cls) in inspect.getmembers(instruction):
+    if inspect.isclass(cls) and issubclass(cls,instruction.Instruction) and hasattr(cls,'pneumonic'):
+        if cls.pneumonic == None:
+            continue
+        instructions[cls.pneumonic] = cls
 
 for line_number,line in enumerate(sys.stdin):
     line = line.strip().split(';')[0].strip()
@@ -38,7 +27,7 @@ for line_number,line in enumerate(sys.stdin):
     if not line:
         continue
     try:
-        instruction,line = line.split(None,1)
+        ins,line = line.split(None,1)
     except ValueError:
         raise Monkeys
     #I'm not sure if there's a nice simpy way to parse this with regular expressions or python string manipulation
@@ -51,8 +40,6 @@ for line_number,line in enumerate(sys.stdin):
     word = []
     while line_pos < len(line):
         letter = line[line_pos]
-        if not inside:
-            letter = letter.lower()
         word.append(letter)
         if letter == '"':
             inside ^= 1
@@ -60,8 +47,6 @@ for line_number,line in enumerate(sys.stdin):
             #escape the next character
             line_pos += 1
             letter = line[line_pos]
-            if not inside:
-                letter = letter.lower()
         elif letter == ',' and not inside:
             parts.append(''.join(word[:-1]).strip())
             word = []
@@ -69,28 +54,27 @@ for line_number,line in enumerate(sys.stdin):
     parts.append(''.join(word).strip())
             
     #parts = line.split()
-    instruction = instruction.lower()
     args = parts
     
-    print instruction,args
-    instruction = instruction.strip(',')
+    print ins,args
+    ins = ins.strip(',')
     try:
-        instruction = instructions[instruction]
+        ins = instructions[ins]
     except KeyError:
-        print 'Unknown instruction at line %d:%s' % (line_number+1,instruction)
+        print 'Unknown instruction at line %d:%s' % (line_number+1,ins)
         raise SystemExit
     try:
-        instruction = instruction(args)
+        ins = ins(args)
     except:
         print 'Unspecified Error during parsing of line %d:%s' % (line_number+1,line)
         raise
-    out.append(instruction)
+    out.append(ins)
     pos += len(out[-1])
 
 #Now the first pass has completed we have encountered all the labels, so go through filling them in...
 try:
-    for i,instruction in enumerate(out):
-        instruction.FillLabels(labels)
+    for i,ins in enumerate(out):
+        ins.FillLabels(labels)
 except instruction.UnknownLabel as e:
     print 'unknown label %s in instruction %d'  % (e.label,i)
     raise SystemExit
