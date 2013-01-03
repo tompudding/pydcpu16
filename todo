@@ -1,0 +1,6 @@
+ - implement the rest of the lem's interrupt handlers
+ - do blinking
+ - do border colours
+ - decide how the keyboard is supposed to handle pressed vs released vs typed
+ - do the floppy
+ - do the sped
