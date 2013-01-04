@@ -186,7 +186,7 @@ class CPU(object):
             self.cycles += 1
             return [word],0
         else:
-            return [x-0x20],0
+            return [(x-0x21+0x10000)&0xffff],0
 
 keyMappings = { K_BACKSPACE : 0x10,
                 K_RETURN    : 0x11,

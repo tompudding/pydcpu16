@@ -41,7 +41,7 @@ def ToString(x,pos,memory,in_a):
         pos += 1
         return ('0x%x' % value),pos
     elif x <= 0x3f:
-        value = x - 0x20
+        value = (x - 0x21 + 0x10000)&0xffff
         return ('0x%x' % value),pos
 
 

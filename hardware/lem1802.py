@@ -60,7 +60,7 @@ class Lem1802(object):
 
         self.pixels = pygame.PixelArray(self.font_surface)
 
-        self.font_data = {i:[0,0] for i in xrange(128)}
+        self.font_data = [[0,0] for i in xrange(128)]
         self.write_handlers = {MemType.SCREEN  : self.write_screen,
                                MemType.FONT    : self.write_font,
                                MemType.PALETTE : self.write_palette}
