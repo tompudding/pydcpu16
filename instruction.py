@@ -436,8 +436,8 @@ class StdInstruction(SettingBasicInstruction):
     opcode    = 31
     pneumonic = 'std'
     @staticmethod
-    def Execute(dcpu,b_array,b_index,a_array,a_index):
-        dcpu.Set(*args)
+    def Execute(dcpu,*args):
+        SetInstruction.Execute(dcpu,*args)
         for i in (6,7):
             dcpu.registers[i] = (dcpu.registers[i] + 0xffff) & 0xffff
         dcpu.cycles += 2

@@ -40,6 +40,8 @@ class CPU(object):
                 self.keyboard = new_device
             elif device is hardware.M35fd:
                 self.floppy = new_device
+            elif device is hardware.Clock:
+                self.clock  = new_device
             self.hardware.append(new_device)
 
     def step(self):
@@ -47,7 +49,7 @@ class CPU(object):
             message = self.interrupt.queue.pop(0)
             self.Interrupt(message)
         instruction = self.memory[self.pc[0]]
-        self.Print()
+        #self.Print()
         self.pc[0] = (self.pc[0] + 1)&0xffff
         opcode = instruction&0x1f
         if opcode == 0:
@@ -250,7 +252,7 @@ def main():
     pygame.display.set_caption('DCPU-16 pygame emulator')
     pygame.mouse.set_visible(0)
 
-    cpu = CPU(memory,(hardware.Keyboard,hardware.M35fd,hardware.Lem1802))
+    cpu = CPU(memory,(hardware.Keyboard,hardware.M35fd,hardware.Lem1802,hardware.Clock))
 
     background = pygame.Surface(cpu.screen.screen.get_size())
     background = background.convert()
@@ -275,6 +277,7 @@ def main():
                 print 'CPU frequency : %.2f kHz' % ((clock.get_fps()*poll_clock)/1000)
                 count = 0
             count += 1
+            cpu.clock.Update()
             for event in pygame.event.get():
                 if event.type == pygame.locals.QUIT:
                     done = True
