@@ -3,6 +3,7 @@ from pygame.locals import *
 from optparse import OptionParser
 
 import hardware
+import instruction
 
 pygame.init()
 
@@ -25,42 +26,9 @@ class CPU(object):
         self.interrupt_queing  = False
         self.mmap_regions      = {}
         self.mmap_memory       = {}
-        self.Instructions      = {0x01 : (self.Set,True),
-                                  0x02 : (self.Add,True),
-                                  0x03 : (self.Sub,True),
-                                  0x04 : (self.Mul,True),
-                                  0x05 : (self.Mli,True),
-                                  0x06 : (self.Div,True),
-                                  0x07 : (self.Dvi,True),
-                                  0x08 : (self.Mod,True),
-                                  0x09 : (self.Mdi,True),
-                                  0x0a : (self.And,True),
-                                  0x0b : (self.Bor,True),
-                                  0x0c : (self.Xor,True),
-                                  0x0d : (self.Shr,True),
-                                  0x0e : (self.Asr,True),
-                                  0x0f : (self.Shl,True),
-                                  0x10 : (self.Ifb,False),
-                                  0x11 : (self.Ifc,False),
-                                  0x12 : (self.Ife,False),
-                                  0x13 : (self.Ifn,False),
-                                  0x14 : (self.Ifg,False),
-                                  0x15 : (self.Ifa,False),
-                                  0x16 : (self.Ifl,False),
-                                  0x17 : (self.Ifu,False),
-                                  0x1a : (self.Adx,True),
-                                  0x1b : (self.Sbx,True),
-                                  0x1e : (self.Sti,True),
-                                  0x1f : (self.Std,True)}
-        self.NonBasic    = {0x01 : (self.Jsr,False),
-                            0x08 : (self.Int,False),
-                            0x09 : (self.Iag,True),
-                            0x0a : (self.Ias,False),
-                            0x0b : (self.Rfi,True),
-                            0x0c : (self.Iaq,False),
-                            0x10 : (self.Hwn,True),
-                            0x11 : (self.Hwq,False),
-                            0x12 : (self.Hwi,False)}
+        self.basic             = instruction.basic_by_opcode
+        self.nonbasic          = instruction.nonbasic_by_opcode
+
         self.condition   = True
         self.keypointer  = 0
         self.dirty_rects = {}
@@ -87,13 +55,13 @@ class CPU(object):
             opcode = (instruction>>5)&0x1f
             a_array,a_index = self.process_arg((instruction>>10)&0x3f)
             try:
-                instruction,sets = self.NonBasic[opcode]
+                instruction = self.nonbasic[opcode]
             except KeyError:
                 #reserved instruction
                 return
             if self.condition:
-                instruction(a_array,a_index)
-                if a_array is self.memory and sets:
+                instruction.Execute(self,a_array,a_index)
+                if a_array is self.memory and instruction.setting:
                     self.dirty(a_index)
             else:
                 self.condition = True
@@ -102,10 +70,11 @@ class CPU(object):
             a_array,a_index = self.process_arg(a)
             b_array,b_index = self.process_arg(b)
             #print opcode,hex(self.pc[0]),self.Instructions[opcode]
-            instruction,sets = self.Instructions[opcode]
+            #self.Print()
+            instruction = self.basic[opcode]
             if self.condition:
-                instruction(b_array,b_index,a_array,a_index)
-                if b_array is self.memory and sets:
+                instruction.Execute(self,b_array,b_index,a_array,a_index)
+                if b_array is self.memory and instruction.setting:
                     self.dirty(b_index)
             else:
                 #we're skipping due to an unsatisfied if
@@ -145,233 +114,11 @@ class CPU(object):
         opcode = instruction&0x1f
         if opcode != 0:
             b,a = (instruction>>5)&0x1f,(instruction>>10)&0x3f
-            print opcode,hex(b),hex(a),self.Instructions[opcode][0].__name__,self.condition
-                                
-    def Set(self,b_array,b_index,a_array,a_index):
-        b_array[b_index] = a_array[a_index]
-        self.cycles += 1
-
-    def Add(self,b_array,b_index,a_array,a_index):
-        a = a_array[a_index]
-        result = b_array[b_index] + a
-        if result > 0xffff:
-            self.overflow[0] = 1
-        b_array[b_index] = (result&0xffff)
-        self.cycles += 2
-
-    def Sub(self,b_array,b_index,a_array,a_index):
-        a = a_array[a_index]
-        result = b_array[b_index] - a
-        if result < 0:
-            result += 0x10000
-            self.overflow[0] = 0xffff
-        b_array[b_index] = result
-        self.cycles += 2
-
-    def Mul(self,b_array,b_index,a_array,a_index):
-        a = a_array[a_index]
-        result = b_array[b_index] * a
-        self.overflow[0] = (result>>16)&0xffff
-        b_array[b_index] = result&0xffff
-        self.cycles += 2
-
-    def Mli(self,b_array,b_index,a_array,a_index):
-        b = b_array[b_index]
-        a = a_array[a_index]
-        a = (a&0x7fff) - (a&0x8000)
-        b = (b&0x7fff) - (b&0x8000)
-        result = b*a
-        self.overflow[0] = (result>>16)&0xffff
-        b_array[b_index] = result&0xffff
-        self.cycles += 2
-
-    def Div(self,b_array,b_index,a_array,a_index):
-        a = a_array[a_index]
-        if a == 0:
-            result = self.overflow[0] = 0
-        else:
-            b = b_array[b_index]
-            result = (b / a)&0xffff
-            self.overflow[0] = ((b<<16)/a)&0xffff
-        b_array[b_index] = result
-        self.cycles += 3
-
-    def Dvi(self,b_array,b_index,a_array,a_index):
-        a = a_array[a_index]
-        a = (a&0x7fff) - (a&0x8000)
-        if a == 0:
-            result = self.overflow[0] = 0
-        else:
-            b = b_array[b_index]
-            b = (b&0x7fff) - (b&0x8000)
-            result = (b / a)&0xffff
-            self.overflow[0] = ((b<<16)/a)&0xffff
-        b_array[b_index] = result
-        self.cycles += 3
-
-    def Mod(self,b_array,b_index,a_array,a_index):
-        a = a_array[a_index]
-        if a == 0:
-            result = 0
-        else:
-            result = b_array[b_index]%a
-        b_array[b_index] = result
-        self.cycles += 3
-
-    def Mdi(self,b_array,b_index,a_array,a_index):
-        a = a_array[a_index]
-        a = (a&0x7fff) - (a&0x8000)
-        if a == 0:
-            result = 0
-        else:
-            b = b_array[b_index]
-            b = (b&0x7fff) - (b&0x8000)
-            result = b_array[b_index]%a
-        b_array[b_index] = result
-        self.cycles += 3
-
-    def Shl(self,b_array,b_index,a_array,a_index):
-        a = a_array[a_index]
-        b = b_array[b_index]
-        result = (b << a)
-        self.overflow[0] = (result >> 16)&0xffff
-        b_array[b_index] = result&0xffff
-        self.cycles += 1
-
-    def Shr(self,b_array,b_index,a_array,a_index):
-        a = a_array[a_index]
-        b = b_array[b_index]
-        result = b >> a
-        self.overflow[0] = (result >> 16)&0xffff
-        b_array[b_index] = result&0xffff
-        self.cycles += 1
-
-    def Asr(self,b_array,b_index,a_array,a_index):
-        a = a_array[a_index]
-        b = b_array[b_index]
-        b = (b&0x7fff) - (b&0x8000)
-        result = b >> a
-        self.overflow[0] = (result >> 16)&0xffff
-        b_array[b_index] = result&0xffff
-        self.cycles += 1
-
-    def And(self,b_array,b_index,a_array,a_index):
-        b_array[b_index] = b_array[b_index] & a_array[a_index]
-        self.cycles += 1
-
-    def Bor(self,b_array,b_index,a_array,a_index):
-        b_array[b_index] = b_array[b_index] | a_array[a_index]
-        self.cycles += 1
-
-    def Xor(self,b_array,b_index,a_array,a_index):
-        b_array[b_index] = b_array[b_index] ^ a_array[a_index]
-        self.cycles += 1
-
-    def Adx(self,b_array,b_index,a_array,a_index):
-        a = a_array[a_index]
-        result = b_array[b_index] + a + self.overflow
-        if result > 0xffff:
-            self.overflow[0] = 1
-        b_array[b_index] = (result&0xffff)
-        self.cycles += 3
-
-    def Sbx(self,b_array,b_index,a_array,a_index):
-        a = a_array[a_index]
-        result = b_array[b_index] - a - self.overflow
-        if result < 0:
-            result += 0x10000
-            self.overflow[0] = 0xffff
-        b_array[b_index] = result
-        self.cycles += 3
-
-    def Sti(self,*args):
-        self.Set(*args)
-        for i in (6,7):
-            self.registers[i] = (self.registers[i] + 1) & 0xffff
-        self.cycles += 2
-        
-    def Std(self,*args):
-        self.Set(*args)
-        for i in (6,7):
-            self.registers[i] = (self.registers[i] + 0xffff) & 0xffff
-        self.cycles += 2
-
-    def Ifb(self,b_array,b_index,a_array,a_index):
-        self.condition = ((b_array[b_index]&a_array[a_index]) != 0)
-        self.cycles += (2 + 1 if not self.condition else 0)
-
-    def Ifc(self,b_array,b_index,a_array,a_index):
-        self.condition = ((b_array[b_index]&a_array[a_index]) == 0)
-        self.cycles += (2 + 1 if not self.condition else 0)
-
-    def Ife(self,b_array,b_index,a_array,a_index):
-        self.condition = (b_array[b_index] == a_array[a_index])
-        self.cycles += (2 + 1 if not self.condition else 0)
-
-    def Ifn(self,b_array,b_index,a_array,a_index):
-        self.condition = (b_array[b_index] != a_array[a_index])
-        self.cycles += (2 + 1 if not self.condition else 0)
-
-    def Ifg(self,b_array,b_index,a_array,a_index):
-        self.condition = (b_array[b_index] > a_array[a_index])
-        self.cycles += (2 + 1 if not self.condition else 0)
-
-    def Ifa(self,b_array,b_index,a_array,a_index):
-        b = b_array[b_index]
-        a = a_array[a_index]
-        a = (a&0x7fff) - (a&0x8000)
-        b = (b&0x7fff) - (b&0x8000)
-        self.condition = (b > a)
-        self.cycles += (2 + 1 if not self.condition else 0)
-
-    def Ifl(self,b_array,b_index,a_array,a_index):
-        self.condition = (b_array[b_index] < a_array[a_index])
-        self.cycles += (2 + 1 if not self.condition else 0)
-
-    def Ifu(self,b_array,b_index,a_array,a_index):
-        b = b_array[b_index]
-        a = a_array[a_index]
-        a = (a&0x7fff) - (a&0x8000)
-        b = (b&0x7fff) - (b&0x8000)
-        self.condition = (b < a)
-        self.cycles += (2 + 1 if not self.condition else 0)
-
-    def Jsr(self,a_array,a_index):
-        a = a_array[a_index]
-        self.sp[0] = (self.sp[0] + 0xffff)&0xffff
-        self.memory[self.sp[0]] = self.pc[0]
-        self.pc[0] = a
-        self.cycles += 3
-
-    def Hwn(self,a_array,a_index):
-        a_array[a_index] = len(self.hardware)&0xffff
-        self.cycles += 2
-
-    def Hwq(self,a_array,a_index):
-        i = a_array[a_index]
-        self.cycles += 4
-        try:
-            hw = self.hardware[i]
-        except IndexError:
-            return
-        self.registers[0] = hw.id&0xffff
-        self.registers[1] = (hw.id>>16)&0xffff
-        self.registers[2] = hw.version&0xffff
-        self.registers[3] = hw.manufacturer&0xffff
-        self.registers[4] = (hw.manufacturer>>16)&0xffff
-
-    def Iag(self,a_array,a_index):
-        a_array[a_index] = self.interrupt_address
-        self.cycles += 1
-
-    def Ias(self,a_array,a_index):
-        self.interrupt_address = a_array[a_index]
-        self.cycles += 1
-
-    def Int(self,a_array,a_index):
-        self.cycles += 4
-        value = a_array[a_index]
-        self.Interrupt(value)
+            if opcode == 0:
+                ins = self.nonbasic[opcode]
+            else:
+                ins = self.basic[opcode]
+            print opcode,hex(b),hex(a),ins.pneumonic,self.condition
 
     def Interrupt(self,value):
         if self.interrupt_queing:
@@ -387,29 +134,6 @@ class CPU(object):
         self.registers[0] = value
         self.pc[0] = self.interrupt_address
 
-    def Rfi(self,a_array,a_index):
-        self.cycles += 3
-        self.interrupt_queing = False
-        self.registers[0] = self.Pop()
-        self.pc[0] = self.Pop()
-
-    def Iaq(self,a_array,a_index):
-        self.cycles += 2
-        value = a_array[a_index]
-        if value != 0:
-            self.interrupt_queing = True
-        else:
-            self.interrupt_queing = False
-
-    def Hwi(self,a_array,a_index):
-        i = a_array[a_index]
-        self.cycles += 4
-        try:
-            hw = self.hardware[i]
-        except IndexError:
-            return
-        self.cycles += hw.Interrupt()
-
     def Push(self,value):
         self.sp[0] = (self.sp[0] + 0xffff)&0xffff
         self.memory[self.sp[0]] = value
@@ -417,7 +141,6 @@ class CPU(object):
     def Pop(self):
         out = self.memory[self.sp[0]]
         self.sp[0] = (self.sp[0] + 1)&0xffff
-
 
     def process_arg(self,x):
         if x < 8:

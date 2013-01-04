@@ -93,7 +93,11 @@ class Lem1802(object):
             pass
         elif value == 4:
             #dump default font
-            pass
+            pos = self.dcpu.registers[1]
+            for font_datum in self.font_data:
+                for word in font_datum:
+                    self.dcpu.memory[pos] = word
+                    pos = (pos + 1)&0xffff
         elif value == 5:
             #dump default palette
             pass

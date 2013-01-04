@@ -6,13 +6,7 @@ labels = {}
 pos = 0
 line_number = 0
 out = []
-instructions = {}
-
-for (name,cls) in inspect.getmembers(instruction):
-    if inspect.isclass(cls) and issubclass(cls,instruction.Instruction) and hasattr(cls,'pneumonic'):
-        if cls.pneumonic == None:
-            continue
-        instructions[cls.pneumonic] = cls
+instructions = instruction.instructions
 
 for line_number,line in enumerate(sys.stdin):
     line = line.strip().split(';')[0].strip()
