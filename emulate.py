@@ -47,13 +47,13 @@ class CPU(object):
             message = self.interrupt.queue.pop(0)
             self.Interrupt(message)
         instruction = self.memory[self.pc[0]]
-        #self.Print()
+        self.Print()
         self.pc[0] = (self.pc[0] + 1)&0xffff
         opcode = instruction&0x1f
         if opcode == 0:
             #non-basic instruction
             opcode = (instruction>>5)&0x1f
-            a_array,a_index = self.process_arg((instruction>>10)&0x3f)
+            a_array,a_index = self.process_arg((instruction>>10)&0x3f,in_a = True)
             try:
                 instruction = self.nonbasic[opcode]
             except KeyError:
@@ -67,8 +67,8 @@ class CPU(object):
                 self.condition = True
         else:
             b,a = (instruction>>5)&0x1f,(instruction>>10)&0x3f
-            a_array,a_index = self.process_arg(a)
-            b_array,b_index = self.process_arg(b)
+            a_array,a_index = self.process_arg(a,in_a = True)
+            b_array,b_index = self.process_arg(b,in_a = False)
             #print opcode,hex(self.pc[0]),self.Instructions[opcode]
             #self.Print()
             instruction = self.basic[opcode]
@@ -142,7 +142,7 @@ class CPU(object):
         out = self.memory[self.sp[0]]
         self.sp[0] = (self.sp[0] + 1)&0xffff
 
-    def process_arg(self,x):
+    def process_arg(self,x,in_a):
         if x < 8:
             return self.registers,x
         elif x < 0x10:
@@ -151,18 +151,24 @@ class CPU(object):
             word = self.memory[self.pc[0]]
             self.pc[0] = (self.pc[0] + 1)&0xffff
             self.cycles += 1
-            return self.memory,word + self.registers[x-0x10]
+            return self.memory,(word + self.registers[x-0x10])&0xffff
         elif x == 0x18:
-            out = self.memory,self.sp[0]
-            if self.condition:
-                self.sp[0] = (self.sp[0] + 1)&0xffff
-            return out
+            if not in_a:
+                if self.condition:
+                    self.sp[0] = (self.sp[0] + 0xffff)&0xffff
+                return self.memory,self.sp[0]
+            else:
+                out = self.memory,self.sp[0]
+                if self.condition:
+                    self.sp[0] = (self.sp[0] + 1)&0xffff
+                return out
         elif x == 0x19:
             return self.memory,self.sp[0]
         elif x == 0x1a:
-            if self.condition:
-                self.sp[0] = (self.sp[0] + 0xffff)&0xffff
-            return self.memory,self.sp[0]
+            word = self.memory[self.pc[0]]
+            self.pc[0] = (self.pc[0] + 1)&0xffff
+            self.cycles += 1
+            return self.memory,(self.sp[0] + word)&0xffff
         elif x == 0x1b:
             return self.sp,0
         elif x == 0x1c:

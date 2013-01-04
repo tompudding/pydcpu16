@@ -551,6 +551,8 @@ class Data(Instruction):
     def Emit(self):
         return ''.join((struct.pack('>H',w) for w in self.words))
 
+class Reserved(Instruction):
+    pneumonic = 'reserved'
 
 instructions = {}
 import inspect
