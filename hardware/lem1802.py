@@ -17,9 +17,10 @@ class Lem1802(object):
     id             = 0x7349f615
     manufacturer   = 0x1c6c8b36
     version        = 0x1802
-    lookups = (('mem_screen' ,384 ,MemType.SCREEN),
-               ('mem_font'   ,256 ,MemType.FONT),
-               ('mem_palette',16  ,MemType.PALETTE))
+    vram_size      = 384
+    lookups = (('mem_screen' ,vram_size ,MemType.SCREEN),
+               ('mem_font'   ,256       ,MemType.FONT),
+               ('mem_palette',16        ,MemType.PALETTE))
     def __init__(self,dcpu):
         self.dcpu              = dcpu
         self.buffer            = []
@@ -33,6 +34,13 @@ class Lem1802(object):
         self.font_surface.set_palette(((0,0,0,255),(255, 255, 255, 255)))
         self.font_surfaces = {}
         self.last = None
+        #Blinkers is a set of all those video positions currently blinking
+        self.blinkers = {}
+        #Letters is a lookup keyed on letter, values are a list of video positions with that letter.
+        #It's to make updating the screen on font updates quicker
+        self.letters  = {i:set() for i in xrange(0x7f)}
+        self.letters[0] = set(range(self.vram_size))
+        self.vram_cache = [0 for i in xrange(self.vram_size)]
         self.palette = [ (0x00,0x00,0x00,0xff),
                          (0x00,0x00,0xaa,0xff),
                          (0x00,0xaa,0x00,0xff),
@@ -75,6 +83,11 @@ class Lem1802(object):
             mmap = self.dcpu.registers[1]
             setattr(self,name,mmap)
             self.dcpu.Mmap(self,mmap,size,t)
+            update_func = self.write_handlers[t]
+            #On initial mmap we need to read all of the buffer
+            for i in xrange(size):
+                update_func(i)
+                
         elif value == 3:
             #set border colour
             pass
@@ -101,17 +114,48 @@ class Lem1802(object):
         text_colour = (letter>>12)&0xf
         back_colour = (letter>>8)&0xf
         text_colour,back_colour = (self.palette[c] for c in (text_colour,back_colour))
+        blink = True if letter&0x80 else False
         letter = letter&0x7f
 
         tile = self.font_surfaces[letter&0x7f]
         tile.set_palette((back_colour,text_colour))
+        if blink:
+            self.blinkers[pos] = (tile,text_colour,back_colour)
+        elif pos in self.blinkers:
+            del self.blinkers[pos]
         self.screen.blit(tile,(x*scale_factor,y*scale_factor))
         self.dirty_rects[dirty] = True
+        old_letter = self.vram_cache[pos]
+        self.letters[old_letter].remove(pos)
+        self.letters[letter].add(pos)
+        self.vram_cache[pos] = letter
     
     def write_font(self,pos):
         index = (self.mem_font + pos)&0xffff
         SetPixels(self.pixels,self.dcpu.memory[(index&0xfffe):(index&0xfffe)+2])
         self.font_surfaces[pos/2] = pygame.transform.scale(self.font_surface,(4*scale_factor,8*scale_factor))
+        if self.mem_screen:
+            for video_pos in xrange(self.vram_size):
+                letter = self.dcpu.memory[(self.mem_screen + video_pos)&0xffff]
+                if letter == (pos/2):
+                    write_screen
  
     def write_palette(self,offset):
         pass
+
+    def Update(self):
+        #print len(self.blinkers)
+        for pos,(tile,fore,back) in self.blinkers.iteritems():
+                x = (pos&0x1f)*4
+                y = (pos/32)*8
+                dirty = (x*scale_factor,y*scale_factor,(x+4)*scale_factor,(y+8)*scale_factor)
+                if (self.dcpu.cycles/50000)&1:
+                    tile.set_palette((back,fore))
+                else:
+                    tile.set_palette((back,back))
+                self.screen.blit(tile,(x*scale_factor,y*scale_factor))
+                self.dirty_rects[dirty] = True
+        if self.dirty_rects:
+            pygame.display.update(self.dirty_rects.keys())
+            self.dirty_rects = {}
+

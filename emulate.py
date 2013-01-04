@@ -534,11 +534,12 @@ def main():
     target = int(options.target_frequency)
     poll_clock = int(options.hardware_rate)
     tick_amount = target/poll_clock
+    last_cycles = 0
 
     while not done:
         cpu.step()
 
-        if cpu.cycles > poll_clock:
+        if (cpu.cycles - last_cycles) > poll_clock:
             #keep to 100kHz
             clock.tick(tick_amount)
             if count > 50 and options.show_freq:
@@ -568,10 +569,9 @@ def main():
                         except:
                             pass
 
-            cpu.cycles = 0
-            if len(cpu.screen.dirty_rects) != 0:
-                pygame.display.update(cpu.screen.dirty_rects.keys())
-                cpu.screen.dirty_rects = {}
+            
+            last_cycles = cpu.cycles
+            cpu.screen.Update()
 
 
 if __name__ == '__main__':
