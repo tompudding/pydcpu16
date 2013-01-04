@@ -403,7 +403,7 @@ class AdxInstruction(SettingBasicInstruction):
     @staticmethod
     def Execute(dcpu,b_array,b_index,a_array,a_index):
         a = a_array[a_index]
-        result = b_array[b_index] + a + dcpu.overflow
+        result = b_array[b_index] + a + dcpu.overflow[0]
         if result > 0xffff:
             dcpu.overflow[0] = 1
         b_array[b_index] = (result&0xffff)
@@ -426,8 +426,8 @@ class StiInstruction(SettingBasicInstruction):
     opcode    = 30
     pneumonic = 'sti'
     @staticmethod
-    def Execute(dcpu,b_array,b_index,a_array,a_index):
-        dcpu.Set(*args)
+    def Execute(dcpu,*args):
+        SetInstruction.Execute(dcpu,*args)
         for i in (6,7):
             dcpu.registers[i] = (dcpu.registers[i] + 1) & 0xffff
         dcpu.cycles += 2

@@ -1,4 +1,5 @@
 import pygame
+import random
 
 scale_factor = None
 
@@ -41,22 +42,23 @@ class Lem1802(object):
         self.letters  = {i:set() for i in xrange(0x7f)}
         self.letters[0] = set(range(self.vram_size))
         self.vram_cache = [0 for i in xrange(self.vram_size)]
-        self.palette = [ (0x00,0x00,0x00,0xff),
-                         (0x00,0x00,0xaa,0xff),
-                         (0x00,0xaa,0x00,0xff),
-                         (0x00,0xaa,0xaa,0xff),
-                         (0xaa,0x00,0x00,0xff),
-                         (0xaa,0x00,0xaa,0xff),
-                         (0xaa,0xaa,0x00,0xff),
-                         (0xaa,0xaa,0xaa,0xff),
-                         (0x55,0x55,0x55,0xff),
-                         (0x55,0x55,0xff,0xff),
-                         (0x55,0xff,0x55,0xff),
-                         (0x55,0xff,0xff,0xff),
-                         (0xff,0x55,0x55,0xff),
-                         (0xff,0x55,0xff,0xff),
-                         (0xff,0xff,0x55,0xff),
-                         (0xff,0xff,0xff,0xff) ]
+        self.default_palette = [ (0x00,0x00,0x00,0xff),
+                                 (0x00,0x00,0xaa,0xff),
+                                 (0x00,0xaa,0x00,0xff),
+                                 (0x00,0xaa,0xaa,0xff),
+                                 (0xaa,0x00,0x00,0xff),
+                                 (0xaa,0x00,0xaa,0xff),
+                                 (0xaa,0xaa,0x00,0xff),
+                                 (0xaa,0xaa,0xaa,0xff),
+                                 (0x55,0x55,0x55,0xff),
+                                 (0x55,0x55,0xff,0xff),
+                                 (0x55,0xff,0x55,0xff),
+                                 (0x55,0xff,0xff,0xff),
+                                 (0xff,0x55,0x55,0xff),
+                                 (0xff,0x55,0xff,0xff),
+                                 (0xff,0xff,0x55,0xff),
+                                 (0xff,0xff,0xff,0xff) ]
+        self.palette = [colour for colour in self.default_palette]
 
         self.pixels = pygame.PixelArray(self.font_surface)
 
@@ -100,7 +102,11 @@ class Lem1802(object):
                     pos = (pos + 1)&0xffff
         elif value == 5:
             #dump default palette
-            pass
+            pos = self.dcpu.registers[1]
+            for i in xrange(16):
+                r,g,b,opacity = self.default_palette[i]
+                r,g,b = (v>>4 for v in (r,g,b))
+                self.dcpu.memory[(pos + i)&0xffff] = (r<<8) | (g<<4) | (b)
         return 0
 
     def mmap_write(self,offset,kind):
@@ -142,10 +148,12 @@ class Lem1802(object):
             for video_pos in xrange(self.vram_size):
                 letter = self.dcpu.memory[(self.mem_screen + video_pos)&0xffff]
                 if letter == (pos/2):
-                    write_screen
+                    self.write_screen(video_pos)
  
     def write_palette(self,offset):
-        pass
+        value = self.dcpu.memory[(self.mem_palette + offset)&0xffff]
+        r,g,b = ((value >> i)&0xf for i in (8,4,0))
+        self.palette[offset] = (r*16,g*16,b*16,0xff)
 
     def Update(self):
         #print len(self.blinkers)
