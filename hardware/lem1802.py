@@ -96,10 +96,16 @@ class Lem1802(object):
         elif value == 4:
             #dump default font
             pos = self.dcpu.registers[1]
+            #start = pos
+            #print 'Dumping font to %x' % pos
             for font_datum in self.font_data:
                 for word in font_datum:
                     self.dcpu.memory[pos] = word
                     pos = (pos + 1)&0xffff
+            #assert(pos == (start+256))
+            #for i in xrange(start,pos):
+            #    print '%04x' % self.dcpu.memory[i]
+            #raise SystemExit
         elif value == 5:
             #dump default palette
             pos = self.dcpu.registers[1]
@@ -141,14 +147,14 @@ class Lem1802(object):
         self.vram_cache[pos] = letter
     
     def write_font(self,pos):
-        index = (self.mem_font + pos)&0xffff
-        SetPixels(self.pixels,self.dcpu.memory[(index&0xfffe):(index&0xfffe)+2])
+        index = (self.mem_font + (pos&0xfffe))&0xffff
+        SetPixels(self.pixels,self.dcpu.memory[index:index+2])
         self.font_surfaces[pos/2] = pygame.transform.scale(self.font_surface,(4*scale_factor,8*scale_factor))
-        if self.mem_screen:
-            for video_pos in xrange(self.vram_size):
-                letter = self.dcpu.memory[(self.mem_screen + video_pos)&0xffff]
-                if letter == (pos/2):
-                    self.write_screen(video_pos)
+        #if self.mem_screen:
+        #    for video_pos in xrange(self.vram_size):
+        #        letter = self.dcpu.memory[(self.mem_screen + video_pos)&0xffff]
+        #        if letter == (pos/2):
+        #            self.write_screen(video_pos)
  
     def write_palette(self,offset):
         value = self.dcpu.memory[(self.mem_palette + offset)&0xffff]
