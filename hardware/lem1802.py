@@ -39,7 +39,7 @@ class Lem1802(object):
         self.blinkers = {}
         #Letters is a lookup keyed on letter, values are a list of video positions with that letter.
         #It's to make updating the screen on font updates quicker
-        self.letters  = {i:set() for i in xrange(0x7f)}
+        self.letters  = {i:set() for i in xrange(0x80)}
         self.letters[0] = set(range(self.vram_size))
         self.vram_cache = [0 for i in xrange(self.vram_size)]
         self.default_palette = [ (0x00,0x00,0x00,0xff),

@@ -21,7 +21,8 @@ class Instruction(object):
     opcode    = None
     pneumonic = None
     setting   = False
-    def ProcessArg(self,arg,allow_literals):
+    def ProcessArg(self,arg,is_a):
+        allow_literals = is_a
         if not arg:
             raise InvalidArg
         arg = arg.strip()
@@ -47,23 +48,32 @@ class Instruction(object):
     
         try:
             literal = int(arg,0)
-            if literal > 0x1f and allow_literals:
-            #if 1:
+            if (literal < 0x1f or literal == 0xffff) and allow_literals:
+                return (0x21 + literal)&0xffff
+            else:
                 self.words.append(literal)
                 return 0x1e if deref else 0x1f
-            else:
-                return 0x20 + literal
+                
         except ValueError:
             #self.words.append(arg)
             pass
 
         #not a literal, maybe a sum
         if arg == 'pop' or arg == '[sp++]':
-            return 0x18
+            if is_a:
+                return 0x18
+            raise InvalidJimnie
         if arg == 'peek' or arg == '[sp]':
             return 0x19
-        if arg == 'push' or arg == '[--sp]':
+        if arg.startswith('pick'):
+            #the other syntax is caught below
+            literal = int(arg.split('pick')[1].strip(),0)
+            self.words.append(literal)
             return 0x1a
+        if arg == 'push' or arg == '[--sp]':
+            if not is_a:
+                return 0x18
+            raise InvalidJimnie
         if arg == 'sp':
             return 0x1b
         if arg == 'pc':
@@ -81,7 +91,15 @@ class Instruction(object):
             elif b in registers:
                 reg,literal = b,a
             else:
-                raise InvalidArg
+                if a == 'sp':
+                    literal = int(b,0)
+                elif b == 'sp':
+                    literal = int(a,0)
+                else:
+                    raise InvalidArg
+                self.words.append(literal)
+                return 0x1a
+                
 
             reg = registers.index(reg)
             try:
@@ -111,8 +129,8 @@ class BasicInstruction(Instruction):
     def __init__(self,args):
         b,a = args
         self.words = [self.opcode]
-        self.b = self.ProcessArg(b,allow_literals = False)&0x1f
-        self.a = self.ProcessArg(a,allow_literals = True)&0x3f
+        self.a = self.ProcessArg(a,is_a = True)&0x3f
+        self.b = self.ProcessArg(b,is_a = False)&0x1f
         print 'args',self.b,self.a,self.words
 
     def Emit(self):
@@ -129,7 +147,7 @@ class NonBasicInstruction(Instruction):
     def __init__(self,args):
         a = args[0]
         self.words = [self.opcode << 5]
-        self.a = self.ProcessArg(a,allow_literals = True)
+        self.a = self.ProcessArg(a,is_a = True)
 
     def Emit(self):
         self.words[0] |= (self.a<<10)
