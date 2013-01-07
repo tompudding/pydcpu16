@@ -143,6 +143,7 @@ class CPU(object):
     def Pop(self):
         out = self.memory[self.sp[0]]
         self.sp[0] = (self.sp[0] + 1)&0xffff
+        return out
 
     def process_arg(self,x,in_a):
         if x < 8:
