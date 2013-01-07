@@ -53,7 +53,7 @@ for line_number,line in enumerate(sys.stdin):
     print ins,args
     ins = ins.strip(',')
     try:
-        ins = instructions[ins]
+        ins = instructions[ins.lower()]
     except KeyError:
         print 'Unknown instruction at line %d:%s' % (line_number+1,ins)
         raise SystemExit

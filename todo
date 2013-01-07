@@ -1,6 +1,6 @@
-     - implement the rest of the lem's interrupt handlers
+done - implement the rest of the lem's interrupt handlers
 done - do blinking
-     - implement the clock
+done - implement the clock
      - do border colours
      - decide how the keyboard is supposed to handle pressed vs released vs typed
      - do the floppy

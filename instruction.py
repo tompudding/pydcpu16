@@ -28,12 +28,12 @@ class Instruction(object):
         arg = arg.strip()
         registers = 'abcxyzij'
         try:
-            reg = registers.index(arg)
+            reg = registers.index(arg.lower())
             return reg
         except ValueError:
             pass
         try:
-            reg = ['[%s]' % r for r in registers].index(arg)
+            reg = ['[%s]' % r for r in registers].index(arg.lower())
             return reg + 8
         except ValueError:
             pass
@@ -59,26 +59,27 @@ class Instruction(object):
             pass
 
         #not a literal, maybe a sum
-        if arg == 'pop' or arg == '[sp++]':
+        argl = arg.lower()
+        if argl == 'pop' or argl == '[sp++]':
             if is_a:
                 return 0x18
             raise InvalidJimnie
-        if arg == 'peek' or arg == '[sp]':
+        if argl == 'peek' or argl == '[sp]':
             return 0x19
-        if arg.startswith('pick'):
+        if argl.startswith('pick'):
             #the other syntax is caught below
-            literal = int(arg.split('pick')[1].strip(),0)
+            literal = int(argl.split('pick')[1].strip(),0)
             self.words.append(literal)
             return 0x1a
-        if arg == 'push' or arg == '[--sp]':
+        if argl == 'push' or argl == '[--sp]':
             if not is_a:
                 return 0x18
             raise InvalidJimnie
-        if arg == 'sp':
+        if argl == 'sp':
             return 0x1b
-        if arg == 'pc':
+        if argl == 'pc':
             return 0x1c
-        if arg == 'o':
+        if argl == 'o':
             return 0x1d
         if '+' in arg:
             try:
