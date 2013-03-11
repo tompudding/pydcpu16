@@ -22,6 +22,7 @@ class BigNum(object):
         for i in xrange(len(self.words)):
             self.words[i] = 0
         self.num_words = 0
+
     def Set(self,num):
         num &= MASK
         self.Zero()
@@ -29,7 +30,11 @@ class BigNum(object):
             self.words[self.num_words] = num&WORDMASK
             self.num_words += 1
             num >>= 16
-        
+
+    def PrintDat(self):
+        for word in [self.num_words] + self.words:
+            print 'DAT 0x%04x' % word
+        print
 
 
 def Add(x,y):
@@ -123,7 +128,7 @@ m     = BigNum(0xffffffffffffffffc90fdaa22168c234c4c6628b80dc1cd129024e088a67cc7
 Rinv  = BigNum(0xaedeec350492d9c8ab21edbde1bd016c6f7d95e2c428a0c6f580eabc8315617e900bf6073ac1af565d7131ff9fc0ba4d5661dd351e73fa0fd075b96625a07c6581d03f04faa0e4a7602a2c70180d9922042ac2acc98281d6e3d44cd8dea606ef)
 Rmodm = BigNum(0x36f0255dde973dcb3b399d747f23e32ed6fdb1f77598338bfdf44159c4ec64ddaeb5f78671cbfb22106ae64c32c5bce4cfd4f5920da0ebc8b01eca9292ae3dba1b7a4a899da181390bb3bd1659c5c9df0000000000000001)
 xbar  = BigNum(0x6de04abbbd2e7b9676733ae8fe47c65dadfb63eeeb306717fbe882b389d8c9bb5d6bef0ce397f64420d5cc98658b79c99fa9eb241b41d791603d9525255c7b7436f495133b43027217677a2cb38b93be0000000000000002)
-R     = BigNum(1<<768)
+#R     = BigNum(1<<768)
 one   = BigNum(1)
 
 def ModExp(t,x,e,m):

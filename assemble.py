@@ -10,9 +10,10 @@ instructions = instruction.instructions
 
 for line_number,line in enumerate(sys.stdin):
     line = line.strip().split(';')[0].strip()
-    if line and line[0] == ':': #it's a label
-        label_parts = line[1:].split(None,1)
-        labels[label_parts[0]] = pos
+    
+    if line and ':' in line: #it's a label
+        label_parts = line.strip(':').split(None,1)
+        labels[label_parts[0].strip(':')] = pos
         if len(label_parts) == 1:
             continue
         else:

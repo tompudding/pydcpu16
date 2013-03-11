@@ -1,0 +1,353 @@
+.equ NUMWORDS , 50
+.equ WORDSIZE , 16
+.equ WORDMASK , ((1<<WORDSIZE)-1)
+        .equ VRAM , 0xfd00
+
+        HWN I
+map_hardware:   
+        SUB I,1
+        HWQ I
+        IFE B, 0x7349
+          IFE A, 0xf615
+            SET [MONITOR], I
+        IFE B, 0x30cf
+          IFE A, 0x7406
+            SET [KEYBOARD], I
+        IFN I, 0
+          SET PC, map_hardware
+
+init_monitor:   
+        SET A, 0
+        SET B, VRAM
+        HWI [MONITOR]
+
+        SET PC , entry
+
+
+;; Initialise a new bignum structure
+;; 
+;; Parameters:     
+;;      a - Address of structure
+        
+zero_bignum:
+        SET C,NUMWORDS+1
+        SET B,A
+        ADD B,C
+zero_bignum_loop:        
+        IFE A,B
+            SET PC,POP          ;return from the constructor
+        SET [A] , 0
+        ADD A,C
+        SET PC, zero_bignum_loop
+
+;;
+;; Print a bignum pointed to by a
+;; 
+;; a - bignum pointer 
+;; 
+
+print_bignum:
+        SET PUSH,X
+        SET PUSH,Y
+        SET PUSH,I
+        SET C,[A]               ; Set c to num_words
+        ADD C,A                 ; set c to &words[num_words-1]
+        SET B,VRAM
+print_bignum_outer_loop:        
+        IFE C,A
+            SET PC,print_bignum_exit
+        SET I,12
+        SET X,[C]
+        SUB C,1
+        ;; Lets print the 4 nibbles of this word
+print_bignum_word_loop:
+        IFU I,0
+            SET PC,print_bignum_outer_loop
+        SET Y,X
+        SHR Y,I
+        AND Y,0xf
+        IFG Y,9
+            ADD Y,39
+        ADD Y,0xf030
+        SET [B],Y
+        ADD B,1
+        SUB I,4
+        SET PC,print_bignum_word_loop
+print_bignum_exit:
+        SET I,POP
+        SET Y,POP
+        SET X,POP
+        SET PC,POP
+
+;;
+;; Add the bignum pointed to by b to the bignum pointed to by a
+;; 
+;; a - input 1
+;; b - input 2
+add_bignums:
+        SET I,1
+        SET Z,0                 ; z = last_zero_words
+add_bignum_loop:        
+        IFE I,NUMWORDS+1
+            SET PC,add_bignum_loopbreak
+        SET C,[B]
+        ADD C,1                 
+        IFE I,C                 ; if i > b.num_words
+            IFE EX,0            ; and overflow == 0
+                SET PC,add_bignum_loopbreak
+        SET C,B
+        ADD C,I
+        SET C,[C]
+        ADD C,EX
+        SET X,EX
+        SET Y,A
+        ADD Y,I
+        ADD [Y],C
+        IFE [Y],0
+            SET PC,add_bignum_inc_lastwords
+        SET Z,0
+        SET PC,add_bignum_lastwords_ifelse
+add_bignum_inc_lastwords:
+        ADD Z,1
+add_bignum_lastwords_ifelse:    
+        BOR EX,X
+        ADD I,1
+        SET PC,add_bignum_loop
+add_bignum_loopbreak:
+        
+        
+        
+entry:
+        SET A,bignum_m
+        JSR print_bignum
+this:   SET PC,this
+
+        
+        SET J,0xf041
+        SET SP,0xfcff
+init_loop:      
+        SET I,0xfd00
+ploop:  
+        SET [I],J
+        ADD I,1
+        IFN I,0
+          SET PC,ploop
+
+        ADD J,1
+        SET PC,init_loop
+
+MONITOR:        DAT 0xB00B
+KEYBOARD:       DAT 0xB00B
+
+bignum_m:
+	DAT 0x0030
+	DAT 0xffff
+	DAT 0xffff
+	DAT 0xffff
+	DAT 0xffff
+	DAT 0x3620
+	DAT 0xa63a
+	DAT 0x42e9
+	DAT 0xf44c
+	DAT 0x7ec6
+	DAT 0x625e
+	DAT 0xb576
+	DAT 0xe485
+	DAT 0xc245
+	DAT 0x6d51
+	DAT 0x356d
+	DAT 0x4fe1
+	DAT 0x1437
+	DAT 0xf25f
+	DAT 0x0a6d
+	DAT 0x302b
+	DAT 0x431b
+	DAT 0xcd3a
+	DAT 0x19b3
+	DAT 0xef95
+	DAT 0x04dd
+	DAT 0x8e34
+	DAT 0x0879
+	DAT 0x514a
+	DAT 0x9b22
+	DAT 0x3b13
+	DAT 0xbea6
+	DAT 0x020b
+	DAT 0xcc74
+	DAT 0x8a67
+	DAT 0x4e08
+	DAT 0x2902
+	DAT 0x1cd1
+	DAT 0x80dc
+	DAT 0x628b
+	DAT 0xc4c6
+	DAT 0xc234
+	DAT 0x2168
+	DAT 0xdaa2
+	DAT 0xc90f
+	DAT 0xffff
+	DAT 0xffff
+	DAT 0xffff
+	DAT 0xffff
+	DAT 0x0000
+	DAT 0x0000
+
+bignum_Rinv:    
+	DAT 0x0030
+	DAT 0x06ef
+	DAT 0xdea6
+	DAT 0x4cd8
+	DAT 0xe3d4
+	DAT 0x81d6
+	DAT 0xc982
+	DAT 0xc2ac
+	DAT 0x042a
+	DAT 0x9922
+	DAT 0x180d
+	DAT 0x2c70
+	DAT 0x602a
+	DAT 0xe4a7
+	DAT 0xfaa0
+	DAT 0x3f04
+	DAT 0x81d0
+	DAT 0x7c65
+	DAT 0x25a0
+	DAT 0xb966
+	DAT 0xd075
+	DAT 0xfa0f
+	DAT 0x1e73
+	DAT 0xdd35
+	DAT 0x5661
+	DAT 0xba4d
+	DAT 0x9fc0
+	DAT 0x31ff
+	DAT 0x5d71
+	DAT 0xaf56
+	DAT 0x3ac1
+	DAT 0xf607
+	DAT 0x900b
+	DAT 0x617e
+	DAT 0x8315
+	DAT 0xeabc
+	DAT 0xf580
+	DAT 0xa0c6
+	DAT 0xc428
+	DAT 0x95e2
+	DAT 0x6f7d
+	DAT 0x016c
+	DAT 0xe1bd
+	DAT 0xedbd
+	DAT 0xab21
+	DAT 0xd9c8
+	DAT 0x0492
+	DAT 0xec35
+	DAT 0xaede
+	DAT 0x0000
+	DAT 0x0000
+
+bignum_Rmodm:   
+	DAT 0x002c
+	DAT 0x0001
+	DAT 0x0000
+	DAT 0x0000
+	DAT 0x0000
+	DAT 0xc9df
+	DAT 0x59c5
+	DAT 0xbd16
+	DAT 0x0bb3
+	DAT 0x8139
+	DAT 0x9da1
+	DAT 0x4a89
+	DAT 0x1b7a
+	DAT 0x3dba
+	DAT 0x92ae
+	DAT 0xca92
+	DAT 0xb01e
+	DAT 0xebc8
+	DAT 0x0da0
+	DAT 0xf592
+	DAT 0xcfd4
+	DAT 0xbce4
+	DAT 0x32c5
+	DAT 0xe64c
+	DAT 0x106a
+	DAT 0xfb22
+	DAT 0x71cb
+	DAT 0xf786
+	DAT 0xaeb5
+	DAT 0x64dd
+	DAT 0xc4ec
+	DAT 0x4159
+	DAT 0xfdf4
+	DAT 0x338b
+	DAT 0x7598
+	DAT 0xb1f7
+	DAT 0xd6fd
+	DAT 0xe32e
+	DAT 0x7f23
+	DAT 0x9d74
+	DAT 0x3b39
+	DAT 0x3dcb
+	DAT 0xde97
+	DAT 0x255d
+	DAT 0x36f0
+	DAT 0x0000
+	DAT 0x0000
+	DAT 0x0000
+	DAT 0x0000
+	DAT 0x0000
+	DAT 0x0000
+
+bignum_xbar:    
+	DAT 0x002c
+	DAT 0x0002
+	DAT 0x0000
+	DAT 0x0000
+	DAT 0x0000
+	DAT 0x93be
+	DAT 0xb38b
+	DAT 0x7a2c
+	DAT 0x1767
+	DAT 0x0272
+	DAT 0x3b43
+	DAT 0x9513
+	DAT 0x36f4
+	DAT 0x7b74
+	DAT 0x255c
+	DAT 0x9525
+	DAT 0x603d
+	DAT 0xd791
+	DAT 0x1b41
+	DAT 0xeb24
+	DAT 0x9fa9
+	DAT 0x79c9
+	DAT 0x658b
+	DAT 0xcc98
+	DAT 0x20d5
+	DAT 0xf644
+	DAT 0xe397
+	DAT 0xef0c
+	DAT 0x5d6b
+	DAT 0xc9bb
+	DAT 0x89d8
+	DAT 0x82b3
+	DAT 0xfbe8
+	DAT 0x6717
+	DAT 0xeb30
+	DAT 0x63ee
+	DAT 0xadfb
+	DAT 0xc65d
+	DAT 0xfe47
+	DAT 0x3ae8
+	DAT 0x7673
+	DAT 0x7b96
+	DAT 0xbd2e
+	DAT 0x4abb
+	DAT 0x6de0
+	DAT 0x0000
+	DAT 0x0000
+	DAT 0x0000
+	DAT 0x0000
+	DAT 0x0000
+	DAT 0x0000
+        
