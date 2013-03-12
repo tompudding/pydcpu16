@@ -45,52 +45,60 @@ def ToString(x,pos,memory,in_a):
         return ('0x%x' % value),pos
 
 
-memory = array.array('H',[0 for i in xrange(0x10000)])
-pos = 0
-done = False
-with open(sys.argv[1],'rb') as f:
-    while not done:
-        datum = f.read(2)
-        if len(datum) == 0:
-            done = True
-        if len(datum) != 2:
-            datum = datum + '\x00'*(2-len(datum))
-        memory[pos] = struct.unpack('>H',datum)[0]
-        pos += 1
-        if pos >= len(memory):
-            done = True
+def Disassemble(memory,start,end):
+    pos = start
 
-total = pos
-pos = 0
-
-while pos < total:
-    startbytes = pos
-    ins = memory[pos]
-    pos += 1
-    opcode = ins&0x1f
-    if opcode == 0:
-        #non-basic instruction
-        opcode = (ins>>5)&0x1f
-        a = (ins>>10)&0x3f
+    while pos < end:
         try:
-            ins = instruction.nonbasic_by_opcode[opcode]
-        except KeyError:
-            #reserved instruction
-            ins = instruction.Reserved
+            startbytes = pos
+            ins = memory[pos]
+            pos += 1
+            opcode = ins&0x1f
+            if opcode == 0:
+                #non-basic instruction
+                opcode = (ins>>5)&0x1f
+                a = (ins>>10)&0x3f
+                try:
+                    ins = instruction.nonbasic_by_opcode[opcode]
+                except KeyError:
+                    #reserved instruction
+                    ins = instruction.Reserved
 
-        args,pos = ToString(a,pos,memory,in_a = True)
-            
-    else:
-        b,a = (ins>>5)&0x1f,(ins>>10)&0x3f
-        string_a,pos = ToString(a,pos,memory,in_a = True)
-        string_b,pos = ToString(b,pos,memory,in_a = False)
-        args = string_b + ' ' + string_a
+                args,pos = ToString(a,pos,memory,in_a = True)
 
-        try:
-            ins = instruction.basic_by_opcode[opcode]
-        except KeyError:
-            ins = instruction.Reserved
-        
-    bytes = ' '.join('%04x' % memory[i] for i in xrange(startbytes,pos))
-    print '%04x : %9s : %s %s' % (startbytes,bytes,ins.pneumonic,args)
+            else:
+                b,a = (ins>>5)&0x1f,(ins>>10)&0x3f
+                string_a,pos = ToString(a,pos,memory,in_a = True)
+                string_b,pos = ToString(b,pos,memory,in_a = False)
+                args = string_b + ' ' + string_a
 
+                try:
+                    ins = instruction.basic_by_opcode[opcode]
+                except KeyError:
+                    ins = instruction.Reserved
+        except IndexError:
+            return
+
+        bytes = ' '.join('%04x' % memory[i] for i in xrange(startbytes,pos))
+        yield (startbytes,bytes,ins.pneumonic,args)
+    
+
+if __name__ == '__main__':
+    memory = array.array('H',[0 for i in xrange(0x10000)])
+    pos = 0
+    done = False
+    with open(sys.argv[1],'rb') as f:
+        while not done:
+            datum = f.read(2)
+            if len(datum) == 0:
+                done = True
+            if len(datum) != 2:
+                datum = datum + '\x00'*(2-len(datum))
+            memory[pos] = struct.unpack('>H',datum)[0]
+            pos += 1
+            if pos >= len(memory):
+                done = True
+
+    total = pos
+    for startbytes,bytes,pneumonic,args in Disassemble(memory[:pos]):
+        print '%04x : %9s : %s %s' % (startbytes,bytes,pneumonic,args)

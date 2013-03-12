@@ -181,6 +181,8 @@ class AddInstruction(SettingBasicInstruction):
         result = b_array[b_index] + a
         if result > 0xffff:
             dcpu.overflow[0] = 1
+        else:
+            dcpu.overflow[0] = 0
         b_array[b_index] = (result&0xffff)
         dcpu.cycles += 2
 
@@ -194,6 +196,8 @@ class SubInstruction(SettingBasicInstruction):
         if result < 0:
             result += 0x10000
             dcpu.overflow[0] = 0xffff
+        else:
+            dcpu.overflow[0] = 0
         b_array[b_index] = result
         dcpu.cycles += 2
 
@@ -425,6 +429,8 @@ class AdxInstruction(SettingBasicInstruction):
         result = b_array[b_index] + a + dcpu.overflow[0]
         if result > 0xffff:
             dcpu.overflow[0] = 1
+        else:
+            dcpu.overflow[0] = 0
         b_array[b_index] = (result&0xffff)
         dcpu.cycles += 3
 
@@ -438,6 +444,8 @@ class SbxInstruction(SettingBasicInstruction):
         if result < 0:
             result += 0x10000
             dcpu.overflow[0] = 0xffff
+        else:
+            dcpu.overflow[0] = 0
         b_array[b_index] = result
         dcpu.cycles += 3
 
