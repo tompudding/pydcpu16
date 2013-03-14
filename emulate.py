@@ -244,6 +244,10 @@ class CPU(object):
             print opcode,hex(b),hex(a),ins.pneumonic,self.condition
 
     def Interrupt(self,value):
+        #I haven't tested this yet
+        #while not self.condition:
+        #    self.step()
+            
         if self.interrupt_queing:
             self.interrupt_queue.append(value)
             if len(self.interrupt_queue) > 256:

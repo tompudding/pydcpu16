@@ -119,6 +119,7 @@ add_bignum_lastwords_ifelse:
         SET PC,add_bignum_loop
 add_bignum_loopbreak:
         SET C,[A]
+        SUB I,1                 
         IFG I,C
             SET [A],I
         SUB [A],Z               ;a.num_words -= last_zero_words
