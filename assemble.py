@@ -10,6 +10,17 @@ instructions = instruction.instructions
 
 for line_number,line in enumerate(sys.stdin):
     line = line.strip().split(';')[0].strip()
+
+    if line and line.startswith('.'):
+        #It's a directive
+        if line.startswith('.def'):
+            start = '.def'
+            if line.startswith('.define'):
+                start = '.define'
+            line.strip(start)
+            line.strip()
+            name,value = line.split(None,1)
+            replacements[name] = value
     
     if line and ':' in line: #it's a label
         label_parts = line.strip(':').split(None,1)

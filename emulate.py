@@ -5,6 +5,8 @@ import time
 import array
 import random
 import disassemble
+import debugger
+import os
 from pygame.locals import *
 from optparse import OptionParser
 
@@ -27,111 +29,10 @@ class StdOutWrapper:
     def get_text(self):
         return ''.join(self.text)
 
-
-class Debugger(object):
-    def __init__(self,cpu):
-        self.cpu              = cpu
-        self.breakpoints      = set([0])
-        self.selected         = 0
-        self.stdscr           = cpu.stdscr
-
-        self.h,self.w   = self.stdscr.getmaxyx()
-        self.left_window  = curses.newwin(self.h,self.w/2,0,0)
-        self.right_window = curses.newwin(self.h,self.w/2,0,self.w/2)
-        self.left_window.keypad(1)
-        self.right_window.keypad(1)
-        self.pane_w       = self.w/2
-        self.stopped      = False
-        with open('/usr/share/dict/words','rb') as f:
-            self.words = [w.strip() for w in f.readlines()]
-
-    def centre_view(self,pos):
-        #Set our pos such that the given pos is as close to the centre as possible
-        for i in xrange(3):
-            correct = None
-            self.disassembly = []
-            start = max(pos-self.h*3,0) + i
-            end = min(pos + self.h*3,len(self.cpu.memory)) + i
-            for index,data in enumerate(disassemble.Disassemble(self.cpu.memory,start,end)):
-                if data[0] == pos:
-                    correct = index
-                self.disassembly.append( data )
-            if correct != None:
-                break
-        else:
-            #Shouldn't be possible
-            raise MonkeyError
-        start = max(correct-self.h/2,0)
-        self.disassembly = [(p,'%3s%s%04x : %9s : %s %s' % ('==>' if p == self.cpu.pc[0] else '','*' if p in self.breakpoints else ' ',p,b,ins,args)) for (p,b,ins,args) in self.disassembly[start:start+self.h]]
-
-    def PrintState(self):
-        for i,(regname,value) in enumerate( (('A',self.cpu.registers[0]),
-                                             ('B',self.cpu.registers[1]),
-                                             ('C',self.cpu.registers[2]),
-                                             ('X',self.cpu.registers[3]),
-                                             ('Y',self.cpu.registers[4]),
-                                             ('Z',self.cpu.registers[5]),
-                                             ('I',self.cpu.registers[6]),
-                                             ('J',self.cpu.registers[7]),
-                                             ('SP',self.cpu.sp[0]),
-                                             ('PC',self.cpu.pc[0]),
-                                             ('EX',self.cpu.overflow[0])) ):
-            self.right_window.addstr(i,0,'%2s : %04x' % (regname,value))
-
-    def Executing(self,pc):
-        if not self.stopped:
-            if pc in self.breakpoints:
-                self.stopped = True
-                self.centre_view(pc)
-                self.selected = pc
-            else:
-                return
-        else:
-            self.centre_view(self.selected)
-
-        #We're stopped, so display and wait for a keypress
-        while True:
-            #disassembly = disassemble.Disassemble(cpu.memory)
-            self.left_window.clear()
-            selected_pos = None
-            for i,(pos,line) in enumerate(self.disassembly):
-                if pos == self.selected:
-                    selected_pos = i
-                    self.left_window.addstr(i,0,line,curses.A_REVERSE)
-                else:
-                    print i
-                    self.left_window.addstr(i,0,line)
-            self.left_window.refresh()
-            self.right_window.clear()
-            self.PrintState()
-            self.right_window.refresh()
-            ch = self.left_window.getch()
-            print ch,curses.KEY_DOWN
-            if ch == curses.KEY_DOWN:
-                try:
-                    self.selected = self.disassembly[selected_pos+1][0]
-                    self.centre_view(self.selected)
-                except IndexError:
-                    pass
-            elif ch == curses.KEY_UP:
-                if selected_pos > 0:
-                    self.selected = self.disassembly[selected_pos-1][0]
-                    self.centre_view(self.selected)
-            elif ch == ord(' '):
-                if self.selected in self.breakpoints:
-                    self.breakpoints.remove(self.selected)
-                else:
-                    self.breakpoints.add(self.selected)
-                self.centre_view(self.selected)
-            elif ch == ord('c'):
-                self.stopped = False
-                break
-            elif ch == ord('s'):
-                break
         
 
 class CPU(object):
-    def __init__(self,stdscr,memory,hw):
+    def __init__(self,stdscr,memory,labels,hw):
         self.registers         = [0 for i in xrange(8)]
         self.sp                = [0]
         self.pc                = [0]
@@ -151,7 +52,7 @@ class CPU(object):
         self.keypointer  = 0
         self.dirty_rects = {}
         self.stdscr      = stdscr
-        self.debug       = Debugger(self)
+        self.debug       = debugger.Debugger(self,labels)
         for device in hw:
             new_device = device(self)
             if device is hardware.Lem1802:
@@ -352,6 +253,11 @@ def main(stdscr):
                       dest="show_freq",
                       default=False,
                       help="Periodically print the actually frequency to the console (default = Off)")
+    parser.add_option('-l','--labels-file',
+                      action='store',
+                      dest='labels_file',
+                      default=None,
+                      help='File to read labels from')
     (options, args) = parser.parse_args()
 
     curses.use_default_colors()
@@ -378,10 +284,13 @@ def main(stdscr):
             if pos >= len(memory):
                 done = True
 
+    if options.labels_file == None:
+        options.labels_file = os.path.splitext(args[0])[0] + '.labels'
+
     pygame.display.set_caption('DCPU-16 pygame emulator')
     pygame.mouse.set_visible(0)
 
-    cpu = CPU(stdscr,memory,(hardware.Keyboard,hardware.M35fd,hardware.Lem1802,hardware.Clock))
+    cpu = CPU(stdscr,memory,options.labels_file,(hardware.Keyboard,hardware.M35fd,hardware.Lem1802,hardware.Clock))
 
     background = pygame.Surface(cpu.screen.screen.get_size())
     background = background.convert()

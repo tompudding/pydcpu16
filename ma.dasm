@@ -132,8 +132,10 @@ add_bignum_loopbreak:
         
 entry:
         SUB SP,NUMWORDS+1
-        SET [SP],1
-        SET [SP+1],1
+        SET [SP],3
+        SET [SP+1],0xffff
+        SET [SP+2],0xffff
+        SET [SP+3],0xffff
         SET A,SP
         SUB SP,NUMWORDS+1
         SET [SP],1
