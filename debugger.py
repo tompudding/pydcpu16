@@ -181,27 +181,45 @@ class Help(View):
         self.window.refresh()
 
 class Memdump(View):
+    display_width = 16
     def __init__(self,debugger,h,w,y,x):
         super(Memdump,self).__init__(h,w,y,x)
         self.debugger = debugger
         self.pos = 0
+        self.selected = 0
 
     def Draw(self,draw_border = False):
         self.window.clear()
         if draw_border:
             self.window.border()
         for i in xrange(self.height-2):
-            addr = self.pos + i*16
-            data = self.debugger.cpu.memory[addr:addr+16]
-            if len(data) < 16:
-                data.extend([0]*(16-len(data)))
+            addr = self.pos + i*self.display_width
+            data = self.debugger.cpu.memory[addr:addr+self.display_width]
+            if len(data) < self.display_width:
+                data.extend([0]*(self.display_width-len(data)))
             data_string = ' '.join('%04x' % d for d in data)
-            self.window.addstr(i+1,1,'%04x : %s' % (addr,data_string))
+            line = '%04x : %s' % (addr,data_string)
+            if addr == self.selected:
+                self.window.addstr(i+1,1,line,curses.A_REVERSE)
+            else:
+                self.window.addstr(i+1,1,line)
         self.window.refresh()
 
     def TakeInput(self):
         ch = self.window.getch()
-        if ch == ord('\t'):
+        if ch == curses.KEY_DOWN:
+            self.selected += self.display_width
+            if self.selected >= 0x10000:
+                self.selected = 0x10000
+            if ((self.selected - self.pos)/self.display_width) >= (self.height - 2):
+                self.pos = self.selected - (self.height-3)*self.display_width
+        elif ch == curses.KEY_UP:
+            self.selected -= self.display_width
+            if self.selected < 0:
+                self.selected = 0
+            if self.selected < self.pos:
+                self.pos = self.selected
+        elif ch == ord('\t'):
             return WindowControl.NEXT
         return WindowControl.SAME
     
