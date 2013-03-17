@@ -17,6 +17,12 @@ class Labels(object):
         except IOError:
             pass
 
+class WindowControl:
+    SAME   = 1
+    RESUME = 2
+    NEXT   = 3
+
+
 class View(object):
     def __init__(self,h,w,y,x):
         self.width  = w
@@ -33,7 +39,7 @@ class View(object):
         pass
 
     def TakeInput(self):
-        return self
+        return WindowControl.SAME
 
 class Debug(View):
     label_width = 14
@@ -62,7 +68,7 @@ class Debug(View):
             raise MonkeyError
         start = max(correct-self.height/2,0)
         dis = []
-        for (p,b,ins,args) in self.disassembly[start:start+self.height]:
+        for (p,b,ins,args) in self.disassembly[start:start+self.height-2]:
             try:
                 label = self.debugger.labels.addr_to_label[p]
             except KeyError:
@@ -94,6 +100,22 @@ class Debug(View):
             if self.selected_pos > 0:
                 self.selected = self.disassembly[self.selected_pos-1][0]
                 self.Centre(self.selected)
+        elif ch == curses.KEY_NPAGE:
+            #We can't jump to any arbitrary point because we don't know the instruction boundaries
+            #instead jump to the end of the screen twice, which should push us down by a whole page
+            for i in xrange(2):
+                p = self.disassembly[-1][0]
+                self.Centre(p)
+
+            self.Select(p)
+        elif ch == curses.KEY_PPAGE:
+            for i in xrange(2):
+                p = self.disassembly[0][0]
+                self.Centre(p)
+
+            self.Select(p)
+        elif ch == ord('\t'):
+            return WindowControl.NEXT
         elif ch == ord(' '):
             if self.selected in self.debugger.breakpoints:
                 self.debugger.breakpoints.remove(self.selected)
@@ -102,22 +124,24 @@ class Debug(View):
             self.Centre(self.selected)
         elif ch == ord('c'):
             self.debugger.Continue()
-            return None
+            return WindowControl.RESUME
         elif ch == ord('s'):
-            return None
-        return self
+            return WindowControl.RESUME
+        return WindowControl.SAME
 
 
-    def Draw(self):
+    def Draw(self,draw_border = False):
         self.window.clear()
+        if draw_border:
+            self.window.border()
         self.selected_pos = None
         for i,(pos,line) in enumerate(self.disassembly):
             if pos == self.selected:
                 self.selected_pos = i
-                self.window.addstr(i,0,line,curses.A_REVERSE)
+                self.window.addstr(i+1,1,line,curses.A_REVERSE)
             else:
                 #print i,line
-                self.window.addstr(i,0,line)
+                self.window.addstr(i+1,1,line)
         self.window.refresh()
 
 class State(View):
@@ -125,8 +149,10 @@ class State(View):
         super(State,self).__init__(h,w,y,x)
         self.debugger = debugger
 
-    def Draw(self):
+    def Draw(self,draw_border = False):
         self.window.clear()
+        if draw_border:
+            self.window.border()
         for i,(regname,value) in enumerate( (('A',self.debugger.cpu.registers[0]),
                                              ('B',self.debugger.cpu.registers[1]),
                                              ('C',self.debugger.cpu.registers[2]),
@@ -138,18 +164,20 @@ class State(View):
                                              ('SP',self.debugger.cpu.sp[0]),
                                              ('PC',self.debugger.cpu.pc[0]),
                                              ('EX',self.debugger.cpu.overflow[0])) ):
-            self.window.addstr(i,0,'%2s : %04x' % (regname,value))
+            self.window.addstr(i+1,1,'%2s : %04x' % (regname,value))
         self.window.refresh()
 
 class Help(View):
-    def Draw(self):
+    def Draw(self,draw_border = False):
         self.window.clear()
+        if draw_border:
+            self.window.border()
         for i,(key,action) in enumerate( (('c','continue'),
                                           ('g','goto'),
                                           ('s','step'),
                                           ('space','set breakpoint'),
                                           ('tab','switch window')) ):
-            self.window.addstr(i,0,'%5s - %s' % (key,action))
+            self.window.addstr(i+1,1,'%5s - %s' % (key,action))
         self.window.refresh()
 
 class Memdump(View):
@@ -158,15 +186,24 @@ class Memdump(View):
         self.debugger = debugger
         self.pos = 0
 
-    def Draw(self):
-        for i in xrange(self.height):
+    def Draw(self,draw_border = False):
+        self.window.clear()
+        if draw_border:
+            self.window.border()
+        for i in xrange(self.height-2):
             addr = self.pos + i*16
             data = self.debugger.cpu.memory[addr:addr+16]
             if len(data) < 16:
                 data.extend([0]*(16-len(data)))
             data_string = ' '.join('%04x' % d for d in data)
-            self.window.addstr(i,0,'%04x : %s' % (addr,data_string))
+            self.window.addstr(i+1,1,'%04x : %s' % (addr,data_string))
         self.window.refresh()
+
+    def TakeInput(self):
+        ch = self.window.getch()
+        if ch == ord('\t'):
+            return WindowControl.NEXT
+        return WindowControl.SAME
     
 
 class Debugger(object):
@@ -182,6 +219,7 @@ class Debugger(object):
         self.state_window   = State(self,self.h/2,self.w/4,0,self.w/2)
         self.help_window    = Help(self.h/2,self.w/4,0,3*(self.w/4))
         self.memdump_window = Memdump(self,self.h/2,self.w/2,self.h/2,self.w/2)
+        self.window_choices = [self.code_window,self.memdump_window]
         self.current_view   = self.code_window
         self.stopped        = False
         self.help_window.Draw()
@@ -205,10 +243,14 @@ class Debugger(object):
         while True:
             #disassembly = disassemble.Disassemble(cpu.memory)
             
-            self.state_window.Draw()
-            self.memdump_window.Draw()
-            self.code_window.Draw()
-            self.current_view = self.current_view.TakeInput()
-            if self.current_view == None:
+            for window in self.state_window,self.memdump_window,self.code_window:
+                window.Draw(self.current_view is window)
+
+            result = self.current_view.TakeInput()
+            if result == WindowControl.RESUME:
                 break
+            elif result == WindowControl.NEXT:
+                pos = self.window_choices.index(self.current_view)
+                pos = (pos + 1)%len(self.window_choices)
+                self.current_view = self.window_choices[pos]
             
