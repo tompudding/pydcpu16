@@ -97,7 +97,7 @@ add_bignum_loop:
             SET PC,add_bignum_loopbreak
         SET C,[B]                
         IFG I,C                 ; if i > b.num_words
-            IFE EX,0            ; and overflow == 0
+            IFE X,0            ; and overflow == 0
                 SET PC,add_bignum_loopbreak
         SET C,B
         ADD C,I
@@ -133,9 +133,17 @@ add_bignum_loopbreak:
 entry:
         SUB SP,NUMWORDS+1
         SET [SP],3
-        SET [SP+1],0xffff
-        SET [SP+2],0xffff
-        SET [SP+3],0xffff
+        SET A,SP
+        ADD A,1
+        SET B,A
+        ADD B,NUMWORDS
+jim_loop:
+        SET [A],0xffff
+        ADD A,1
+        IFE A,B
+            SET PC,jim_done
+        SET PC,jim_loop
+jim_done:
         SET A,SP
         SUB SP,NUMWORDS+1
         SET [SP],1

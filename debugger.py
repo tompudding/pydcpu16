@@ -1,5 +1,6 @@
 import curses
 import disassemble
+import time
 
 class Labels(object):
     def __init__(self,fname):
@@ -182,11 +183,16 @@ class Help(View):
 
 class Memdump(View):
     display_width = 16
+    key_time = 0.5
+    masks  = (0x0000,0xf000,0xff00,0xfff0,0xffff)
+    shifts = (12,8,4,0)
     def __init__(self,debugger,h,w,y,x):
         super(Memdump,self).__init__(h,w,y,x)
         self.debugger = debugger
         self.pos = 0
         self.selected = 0
+        self.lastkey = 0
+        self.keypos = 0
 
     def Draw(self,draw_border = False):
         self.window.clear()
@@ -219,6 +225,18 @@ class Memdump(View):
                 self.selected = 0
             if self.selected < self.pos:
                 self.pos = self.selected
+        elif ch in [ord(c) for c in '0123456789abcdef']:
+            newnum = int(chr(ch),16)
+            now = time.time()
+            if now - self.lastkey > self.key_time:
+                self.keypos = 0
+            self.pos &= self.masks[self.keypos]
+            self.pos |= newnum << self.shifts[self.keypos]
+            self.keypos += 1
+            self.keypos &= 3
+            self.lastkey = now
+            self.selected = self.pos
+            
         elif ch == ord('\t'):
             return WindowControl.NEXT
         return WindowControl.SAME
