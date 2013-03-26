@@ -319,7 +319,7 @@ class ShrInstruction(SettingBasicInstruction):
         a = a_array[a_index]
         b = b_array[b_index]
         result = b >> a
-        dcpu.overflow[0] = (result >> 16)&0xffff
+        dcpu.overflow[0] = ((b << 16)>>a)&0xffff
         b_array[b_index] = result&0xffff
         dcpu.cycles += 1
 
@@ -332,7 +332,7 @@ class AsrInstruction(SettingBasicInstruction):
         b = b_array[b_index]
         b = (b&0x7fff) - (b&0x8000)
         result = b >> a
-        dcpu.overflow[0] = (result >> 16)&0xffff
+        dcpu.overflow[0] = ((b << 16)>>a)&0xffff
         b_array[b_index] = result&0xffff
         dcpu.cycles += 1
 
@@ -344,7 +344,7 @@ class ShlInstruction(SettingBasicInstruction):
         a = a_array[a_index]
         b = b_array[b_index]
         result = (b << a)
-        dcpu.overflow[0] = (result >> 16)&0xffff
+        dcpu.overflow[0] = ((b << a)>>16)&0xffff
         b_array[b_index] = result&0xffff
         dcpu.cycles += 1
 

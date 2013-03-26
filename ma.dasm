@@ -180,17 +180,98 @@ sub_bignum_loopbreak:
         SET X,POP
         SET PC,POP
 
+;;
+;; Right shift a by b bits
+;; 
+;; a - Bignum
+;; b - num
+;; 
+;; def Rshift(x,y):
+;;     word_shift = y/WORDSIZE
+;;     sub_shift = y&(WORDSIZE-1)
+;;     for i in xrange(x.num_words):
+;;         if i+word_shift >= x.num_words:
+;;             a = 0
+;;         else:
+;;             a = x.words[i+word_shift]>>sub_shift
+;;         if i+word_shift+1 >= x.num_words:
+;;             b = 0
+;;         else:
+;;             b = (x.words[i+word_shift+1]<<(WORDSIZE-sub_shift)&WORDMASK)
+;;         x.words[i] = a | b
+;;     x.num_words -= word_shift
+;;     assert x.num_words >= 0
+;;     if x.num_words > 0 and x.words[x.num_words-1] == 0:
+;;         x.num_words -= 1
+
+rshift:
+        SET PUSH,X
+        SET PUSH,Y
+        SET PUSH,Z
+        SET PUSH,I
+        SET PUSH,J
+        SET C,B
+        DIV C,WORDSIZE          ;C is word_shift
+        AND B,WORDSIZE-1        ;B is sub_shift
+        SET Y,WORDSIZE
+        SUB Y,B                 ;Y is WORDSIZE-sub_shift
+        SET I,0
+rshift_loop:
+        IFE I,NUMWORDS
+            SET PC,rshift_done
+        SET Z,I
+        ADD Z,C                 ;Z is i+word_shift
+        IFL Z,[A]
+            SET PC,rshift_test1
+        SET X,0
+        SET PC,rshift_test1_done
+rshift_test1:
+        SET J,A
+        ADD J,Z
+        ADD J,1
+        SET X,[J]
+        SHR X,B
+rshift_test1_done:
+        ADD Z,2
+        IFG Z,[A]
+            SET PC,rshift_test2_done
+        SET J,A
+        ADD J,Z
+        SET J,[J]
+        SHL J,Y
+        BOR X,J
+rshift_test2_done:
+        ADD I,1
+        SET J,A
+        ADD J,I
+        SET [J],X
+        SET PC,rshift_loop
+rshift_done:
+        SUB [A],C
+        SET B,[A]
+        SET C,B
+        ADD C,A
+        IFG B,0
+            IFE [C],0
+                SUB [C],1
+        SET J,POP
+        SET I,POP
+        SET Z,POP
+        SET Y,POP
+        SET X,POP
+        SET PC,POP
+
 ;;; 
 ;;; 
 ;;; 
 ;;; Entry point
 entry:
         SUB SP,NUMWORDS+1
-        SET [SP],3
+        SET [SP],2
         SET A,SP
         ADD A,1
         SET B,A
-        ADD B,10
+        ADD B,2
 jim_loop:
         SET [A],0xffff
         ADD A,1
@@ -202,12 +283,9 @@ jim_done:
         SUB SP,NUMWORDS+1
         SET [SP],1
         SET [SP+1],1
-        SET B,SP
-        JSR add_bignums
-        SET B,SP
         SET A,bignum_m
-        SET B,bignum_Rinv
-        JSR sub_bignums
+        SET B,301
+        JSR rshift
         JSR print_bignum
 this:   SET PC,this
 

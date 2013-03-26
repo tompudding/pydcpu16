@@ -268,12 +268,12 @@ class Debugger(object):
         if not self.stopped:
             if pc in self.breakpoints:
                 self.stopped = True
-                self.current_view.Select(pc)
-                self.current_view.Centre(pc)
             else:
                 return
         else:
             self.current_view.Centre()
+        self.current_view.Select(pc)
+        self.current_view.Centre(pc)
 
         #We're stopped, so display and wait for a keypress
         while True:
