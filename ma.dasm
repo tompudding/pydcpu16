@@ -303,6 +303,77 @@ cmp_continue:
         ADD B,1
         SET PC,cmp_loop
 
+;;
+;; Store Montgomery Multiplication of b*c in a
+;; 
+;; a - output Bignum
+;; b - input Bignum
+;; c - input Bignum
+;; x - m      
+;;
+;; Return a
+montymul:
+        JSR zero_bignum
+        SUB SP,2
+        SET I,B
+        SET [SP],[C+1]
+        AND [SP],1
+        ADD I,48
+montymul_wordloop:      
+        ADD B,1
+        IFG B,I
+            SET PC,montymul_wordloop_done
+        SET Y,0
+montymul_bitloop:
+        IFE Y,WORDSIZE
+            SET PC,montymul_wordloop
+        SET J,[B]
+        ASR J,Y
+        SET Z,[A+1]
+        ;; J is xbit, Z is a.words[0]
+        AND J,1
+        IFN J,1
+            SET PC,montymul_after_addc
+        SET PUSH,B
+        SET PUSH,C
+        SET B,C
+        JSR add_bignums
+        SET C,POP
+        SET B,POP
+montymul_after_addc:    
+        AND J,[SP]
+        XOR Z,J
+        AND Z,1
+        ;; Z is now u
+        IFE Z,0
+            SET PC,montymul_after_addm
+        SET PUSH,B
+        SET PUSH,C
+        SET B,X
+        JSR add_bignums
+        SET C,POP
+        SET B,POP
+montymul_after_addm:
+        SET PUSH,B
+        SET B,1
+        JSR rshift
+        SET B,POP
+        ADD Y,1
+        SET PC,montymul_bitloop
+montymul_wordloop_done:
+        SET PUSH,A
+        SET B,X
+        JSR cmp_bignum
+        SET B,A
+        SET A,POP
+        IFN B,1
+            SET PC,montymul_return
+        SET B,X
+        JSR sub_bignums
+montymul_return:        
+        ADD SP,2
+        SET PC,POP
+
 ;;; 
 ;;; 
 ;;; 
