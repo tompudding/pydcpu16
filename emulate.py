@@ -7,6 +7,7 @@ import random
 import disassemble
 import debugger
 import os
+import signal
 from pygame.locals import *
 from optparse import OptionParser
 
@@ -29,10 +30,9 @@ class StdOutWrapper:
     def get_text(self):
         return ''.join(self.text)
 
-        
-
 class CPU(object):
     def __init__(self,stdscr,memory,labels,hw):
+        self.original_memory   = memory[::]
         self.registers         = [0 for i in xrange(8)]
         self.sp                = [0]
         self.pc                = [0]
@@ -64,6 +64,11 @@ class CPU(object):
             elif device is hardware.Clock:
                 self.clock  = new_device
             self.hardware.append(new_device)
+
+    def KeyboardInterrupt(self):
+        if self.debug.stopped:
+            raise KeyboardInterrupt
+        self.debug.stopped = True
 
     def step(self):
         if self.interrupt_queue and not self.interrupt_queing:
@@ -291,6 +296,11 @@ def main(stdscr):
     pygame.mouse.set_visible(0)
 
     cpu = CPU(stdscr,memory,options.labels_file,(hardware.Keyboard,hardware.M35fd,hardware.Lem1802,hardware.Clock))
+
+    def sigint_handler(signal, frame):
+        cpu.KeyboardInterrupt()
+
+    signal.signal(signal.SIGINT, sigint_handler)
 
     background = pygame.Surface(cpu.screen.screen.get_size())
     background = background.convert()
