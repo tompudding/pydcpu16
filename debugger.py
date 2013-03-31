@@ -19,9 +19,10 @@ class Labels(object):
             pass
 
 class WindowControl:
-    SAME   = 1
-    RESUME = 2
-    NEXT   = 3
+    SAME    = 1
+    RESUME  = 2
+    NEXT    = 3
+    RESTART = 4
 
 
 class View(object):
@@ -128,6 +129,9 @@ class Debug(View):
             return WindowControl.RESUME
         elif ch == ord('s'):
             return WindowControl.RESUME
+        elif ch == ord('r'):
+            self.debugger.cpu.Reset()
+            return WindowControl.RESTART
         return WindowControl.SAME
 
 
@@ -285,6 +289,8 @@ class Debugger(object):
             result = self.current_view.TakeInput()
             if result == WindowControl.RESUME:
                 break
+            elif result == WindowControl.RESTART:
+                return False
             elif result == WindowControl.NEXT:
                 pos = self.window_choices.index(self.current_view)
                 pos = (pos + 1)%len(self.window_choices)

@@ -65,6 +65,14 @@ class CPU(object):
                 self.clock  = new_device
             self.hardware.append(new_device)
 
+    def Reset(self):
+        self.memory = self.original_memory[::]
+        self.registers         = [0 for i in xrange(8)]
+        self.sp                = [0]
+        self.pc                = [0]
+        self.overflow          = [0]
+        self.debug.stopped = True
+
     def KeyboardInterrupt(self):
         if self.debug.stopped:
             raise KeyboardInterrupt
@@ -76,7 +84,8 @@ class CPU(object):
             self.Interrupt(message)
         instruction = self.memory[self.pc[0]]
         if self.debug:
-            self.debug.Executing(self.pc[0])
+            if False == self.debug.Executing(self.pc[0]):
+                return
         self.pc[0] = (self.pc[0] + 1)&0xffff
         opcode = instruction&0x1f
         if opcode == 0:
