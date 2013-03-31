@@ -33,11 +33,12 @@ zero_bignum:
         SET C,NUMWORDS+1
         SET B,A
         ADD B,C
+        SET C,A
 zero_bignum_loop:        
-        IFE A,B
+        IFE C,B
             SET PC,POP          ;return from the constructor
-        SET [A] , 0
-        ADD A,C
+        SET [C] , 0
+        ADD C,1
         SET PC, zero_bignum_loop
 
 ;;
@@ -313,7 +314,11 @@ cmp_continue:
 ;;
 ;; Return a
 montymul:
+        SET PUSH,B
+        SET PUSH,C
         JSR zero_bignum
+        SET C,POP
+        SET B,POP
         SUB SP,2
         SET I,B
         SET [SP],[C+1]
@@ -354,10 +359,12 @@ montymul_after_addc:
         SET C,POP
         SET B,POP
 montymul_after_addm:
+        SET PUSH,C
         SET PUSH,B
         SET B,1
         JSR rshift
         SET B,POP
+        SET C,POP
         ADD Y,1
         SET PC,montymul_bitloop
 montymul_wordloop_done:
@@ -380,29 +387,12 @@ montymul_return:
 ;;; Entry point
 entry:
         SUB SP,NUMWORDS+1
-        SET [SP],2
         SET A,SP
         ADD A,1
-        SET B,A
-        ADD B,2
-jim_loop:
-        SET [A],0xffff
-        ADD A,1
-        IFE A,B
-            SET PC,jim_done
-        SET PC,jim_loop
-jim_done:
-        SET A,SP
-        SUB SP,NUMWORDS+1
-        SET [SP],1
-        SET [SP+1],1
-        SET A,bignum_m
-        SET B,301
-        JSR rshift
-        SET C,A
-        SET A,bignum_Rinv
-        SET B,C
-        JSR cmp_bignum
+        SET B,bignum_xbar
+        SET C,bignum_xbar
+        SET X,bignum_m
+        JSR montymul
         JSR print_bignum
 this:   SET PC,this
 

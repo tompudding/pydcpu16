@@ -36,6 +36,9 @@ class BigNum(object):
             print 'DAT 0x%04x' % word
         print
 
+    def Print(self):
+        print ''.join(['%04x' % c for c in self.words[:self.num_words]][::-1])
+
 
 def Add(x,y):
     overflow = 0
@@ -120,6 +123,8 @@ def MontyMul(a,x,y,rinv,m):
             if u:
                 Add(a,m)
             Rshift(a,1)
+            a.Print()
+            print i,w
     if Cmp(a,m) > 0:
         Sub(a,m)
     
@@ -157,6 +162,12 @@ def ModExp(t,x,e,m):
                 t1,t2 = t2,t1
                 #print w*WORDSIZE+i,'*',''.join(['%04x' % c for c in t1.words][::-1])
     MontyMul(t,t1,one,Rinv,m)
+
+a = BigNum(0)
+MontyMul(a,xbar,xbar,Rinv,m)
+
+a.Print()
+raise SystemExit
                                                           
 a_n = int(sys.argv[1])
 
