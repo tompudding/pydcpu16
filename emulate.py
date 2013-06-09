@@ -156,7 +156,7 @@ class CPU(object):
                 ins = self.nonbasic[opcode]
             else:
                 ins = self.basic[opcode]
-            print opcode,hex(b),hex(a),ins.pneumonic,self.condition
+            print opcode,hex(b),hex(a),ins.mneumonic,self.condition
 
     def Interrupt(self,value):
         #I haven't tested this yet

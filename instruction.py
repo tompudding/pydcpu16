@@ -19,7 +19,7 @@ def CheckLabel(x,labels):
 
 class Instruction(object):
     opcode    = None
-    pneumonic = None
+    mneumonic = None
     setting   = False
     def ProcessArg(self,arg,is_a):
         allow_literals = is_a
@@ -166,7 +166,7 @@ class SettingNonBasicInstruction(NonBasicInstruction):
         
 class SetInstruction(SettingBasicInstruction):
     opcode    = 1
-    pneumonic = 'set'
+    mneumonic = 'set'
     @staticmethod
     def Execute(dcpu,b_array,b_index,a_array,a_index):
         b_array[b_index] = a_array[a_index]
@@ -174,7 +174,7 @@ class SetInstruction(SettingBasicInstruction):
 
 class AddInstruction(SettingBasicInstruction):
     opcode    = 2
-    pneumonic = 'add'
+    mneumonic = 'add'
     @staticmethod
     def Execute(dcpu,b_array,b_index,a_array,a_index):
         a = a_array[a_index]
@@ -188,7 +188,7 @@ class AddInstruction(SettingBasicInstruction):
 
 class SubInstruction(SettingBasicInstruction):
     opcode    = 3
-    pneumonic = 'sub'
+    mneumonic = 'sub'
     @staticmethod
     def Execute(dcpu,b_array,b_index,a_array,a_index):
         a = a_array[a_index]
@@ -203,7 +203,7 @@ class SubInstruction(SettingBasicInstruction):
 
 class MulInstruction(SettingBasicInstruction):
     opcode    = 4
-    pneumonic = 'mul'
+    mneumonic = 'mul'
     @staticmethod
     def Execute(dcpu,b_array,b_index,a_array,a_index):
         a = a_array[a_index]
@@ -214,7 +214,7 @@ class MulInstruction(SettingBasicInstruction):
 
 class MliInstruction(SettingBasicInstruction):
     opcode    = 5
-    pneumonic = 'mli'
+    mneumonic = 'mli'
     @staticmethod
     def Execute(dcpu,b_array,b_index,a_array,a_index):
         b = b_array[b_index]
@@ -228,7 +228,7 @@ class MliInstruction(SettingBasicInstruction):
 
 class DivInstruction(SettingBasicInstruction):
     opcode    = 6
-    pneumonic = 'div'
+    mneumonic = 'div'
     @staticmethod
     def Execute(dcpu,b_array,b_index,a_array,a_index):
         a = a_array[a_index]
@@ -243,7 +243,7 @@ class DivInstruction(SettingBasicInstruction):
 
 class DviInstruction(SettingBasicInstruction):
     opcode    = 7
-    pneumonic = 'dvi'
+    mneumonic = 'dvi'
     @staticmethod
     def Execute(dcpu,b_array,b_index,a_array,a_index):
         a = a_array[a_index]
@@ -260,7 +260,7 @@ class DviInstruction(SettingBasicInstruction):
 
 class ModInstruction(SettingBasicInstruction):
     opcode    = 8
-    pneumonic = 'mod'
+    mneumonic = 'mod'
     @staticmethod
     def Execute(dcpu,b_array,b_index,a_array,a_index):
         a = a_array[a_index]
@@ -273,7 +273,7 @@ class ModInstruction(SettingBasicInstruction):
 
 class MdiInstruction(SettingBasicInstruction):
     opcode    = 9
-    pneumonic = 'mdi'
+    mneumonic = 'mdi'
     @staticmethod
     def Execute(dcpu,b_array,b_index,a_array,a_index):
         a = a_array[a_index]
@@ -289,7 +289,7 @@ class MdiInstruction(SettingBasicInstruction):
 
 class AndInstruction(SettingBasicInstruction):
     opcode    = 10
-    pneumonic = 'and'
+    mneumonic = 'and'
     @staticmethod
     def Execute(dcpu,b_array,b_index,a_array,a_index):
         b_array[b_index] = b_array[b_index] & a_array[a_index]
@@ -297,7 +297,7 @@ class AndInstruction(SettingBasicInstruction):
 
 class BorInstruction(SettingBasicInstruction):
     opcode    = 11
-    pneumonic = 'bor'
+    mneumonic = 'bor'
     @staticmethod
     def Execute(dcpu,b_array,b_index,a_array,a_index):
         b_array[b_index] = b_array[b_index] | a_array[a_index]
@@ -305,7 +305,7 @@ class BorInstruction(SettingBasicInstruction):
 
 class XorInstruction(SettingBasicInstruction):
     opcode    = 12
-    pneumonic = 'xor'
+    mneumonic = 'xor'
     @staticmethod
     def Execute(dcpu,b_array,b_index,a_array,a_index):
         b_array[b_index] = b_array[b_index] ^ a_array[a_index]
@@ -313,7 +313,7 @@ class XorInstruction(SettingBasicInstruction):
 
 class ShrInstruction(SettingBasicInstruction):
     opcode    = 13
-    pneumonic = 'shr'
+    mneumonic = 'shr'
     @staticmethod
     def Execute(dcpu,b_array,b_index,a_array,a_index):
         a = a_array[a_index]
@@ -325,7 +325,7 @@ class ShrInstruction(SettingBasicInstruction):
 
 class AsrInstruction(SettingBasicInstruction):
     opcode    = 14
-    pneumonic = 'asr'
+    mneumonic = 'asr'
     @staticmethod
     def Execute(dcpu,b_array,b_index,a_array,a_index):
         a = a_array[a_index]
@@ -338,7 +338,7 @@ class AsrInstruction(SettingBasicInstruction):
 
 class ShlInstruction(SettingBasicInstruction):
     opcode    = 15
-    pneumonic = 'shl'
+    mneumonic = 'shl'
     @staticmethod
     def Execute(dcpu,b_array,b_index,a_array,a_index):
         a = a_array[a_index]
@@ -350,7 +350,7 @@ class ShlInstruction(SettingBasicInstruction):
 
 class IfbInstruction(BasicInstruction):
     opcode    = 16
-    pneumonic = 'ifb'
+    mneumonic = 'ifb'
     @staticmethod
     def Execute(dcpu,b_array,b_index,a_array,a_index):
         dcpu.condition = ((b_array[b_index]&a_array[a_index]) != 0)
@@ -358,7 +358,7 @@ class IfbInstruction(BasicInstruction):
 
 class IfcInstruction(BasicInstruction):
     opcode    = 17
-    pneumonic = 'ifc'
+    mneumonic = 'ifc'
     @staticmethod
     def Execute(dcpu,b_array,b_index,a_array,a_index):
         dcpu.condition = ((b_array[b_index]&a_array[a_index]) == 0)
@@ -366,7 +366,7 @@ class IfcInstruction(BasicInstruction):
 
 class IfeInstruction(BasicInstruction):
     opcode    = 18
-    pneumonic = 'ife'
+    mneumonic = 'ife'
     @staticmethod
     def Execute(dcpu,b_array,b_index,a_array,a_index):
         dcpu.condition = (b_array[b_index] == a_array[a_index])
@@ -374,7 +374,7 @@ class IfeInstruction(BasicInstruction):
 
 class IfnInstruction(BasicInstruction):
     opcode    = 19
-    pneumonic = 'ifn'
+    mneumonic = 'ifn'
     @staticmethod
     def Execute(dcpu,b_array,b_index,a_array,a_index):
         dcpu.condition = (b_array[b_index] != a_array[a_index])
@@ -382,7 +382,7 @@ class IfnInstruction(BasicInstruction):
 
 class IfgInstruction(BasicInstruction):
     opcode    = 20
-    pneumonic = 'ifg'
+    mneumonic = 'ifg'
     @staticmethod
     def Execute(dcpu,b_array,b_index,a_array,a_index):
         dcpu.condition = (b_array[b_index] > a_array[a_index])
@@ -390,7 +390,7 @@ class IfgInstruction(BasicInstruction):
 
 class IfaInstruction(BasicInstruction):
     opcode    = 21
-    pneumonic = 'ifa'
+    mneumonic = 'ifa'
     @staticmethod
     def Execute(dcpu,b_array,b_index,a_array,a_index):
         b = b_array[b_index]
@@ -402,7 +402,7 @@ class IfaInstruction(BasicInstruction):
 
 class IflInstruction(BasicInstruction):
     opcode    = 22
-    pneumonic = 'ifl'
+    mneumonic = 'ifl'
     @staticmethod
     def Execute(dcpu,b_array,b_index,a_array,a_index):
         dcpu.condition = (b_array[b_index] < a_array[a_index])
@@ -410,7 +410,7 @@ class IflInstruction(BasicInstruction):
 
 class IfuInstruction(BasicInstruction):
     opcode    = 23
-    pneumonic = 'ifu'
+    mneumonic = 'ifu'
     @staticmethod
     def Execute(dcpu,b_array,b_index,a_array,a_index):
         b = b_array[b_index]
@@ -422,7 +422,7 @@ class IfuInstruction(BasicInstruction):
 
 class AdxInstruction(SettingBasicInstruction):
     opcode    = 26
-    pneumonic = 'adx'
+    mneumonic = 'adx'
     @staticmethod
     def Execute(dcpu,b_array,b_index,a_array,a_index):
         a = a_array[a_index]
@@ -436,7 +436,7 @@ class AdxInstruction(SettingBasicInstruction):
 
 class SbxInstruction(SettingBasicInstruction):
     opcode    = 27
-    pneumonic = 'sbx'
+    mneumonic = 'sbx'
     @staticmethod
     def Execute(dcpu,b_array,b_index,a_array,a_index):
         a = a_array[a_index]
@@ -451,7 +451,7 @@ class SbxInstruction(SettingBasicInstruction):
 
 class StiInstruction(SettingBasicInstruction):
     opcode    = 30
-    pneumonic = 'sti'
+    mneumonic = 'sti'
     @staticmethod
     def Execute(dcpu,*args):
         SetInstruction.Execute(dcpu,*args)
@@ -461,7 +461,7 @@ class StiInstruction(SettingBasicInstruction):
 
 class StdInstruction(SettingBasicInstruction):
     opcode    = 31
-    pneumonic = 'std'
+    mneumonic = 'std'
     @staticmethod
     def Execute(dcpu,*args):
         SetInstruction.Execute(dcpu,*args)
@@ -472,7 +472,7 @@ class StdInstruction(SettingBasicInstruction):
 
 class JsrInstruction(NonBasicInstruction):
     opcode    = 1
-    pneumonic = 'jsr'
+    mneumonic = 'jsr'
     @staticmethod
     def Execute(dcpu,a_array,a_index):
         a = a_array[a_index]
@@ -483,7 +483,7 @@ class JsrInstruction(NonBasicInstruction):
 
 class IntInstruction(NonBasicInstruction):
     opcode    = 8
-    pneumonic = 'int'
+    mneumonic = 'int'
     @staticmethod
     def Execute(dcpu,a_array,a_index):
         dcpu.cycles += 4
@@ -492,7 +492,7 @@ class IntInstruction(NonBasicInstruction):
 
 class IagInstruction(SettingNonBasicInstruction):
     opcode    = 9
-    pneumonic = 'iag'
+    mneumonic = 'iag'
     @staticmethod
     def Execute(dcpu,a_array,a_index):
         a_array[a_index] = dcpu.interrupt_address
@@ -500,7 +500,7 @@ class IagInstruction(SettingNonBasicInstruction):
 
 class IasInstruction(NonBasicInstruction):
     opcode    = 10
-    pneumonic = 'ias'
+    mneumonic = 'ias'
     @staticmethod
     def Execute(dcpu,a_array,a_index):
         dcpu.interrupt_address = a_array[a_index]
@@ -508,7 +508,7 @@ class IasInstruction(NonBasicInstruction):
 
 class RfiInstruction(NonBasicInstruction):
     opcode    = 11
-    pneumonic = 'rfi'
+    mneumonic = 'rfi'
     @staticmethod
     def Execute(dcpu,a_array,a_index):
         dcpu.cycles += 3
@@ -518,7 +518,7 @@ class RfiInstruction(NonBasicInstruction):
 
 class IaqInstruction(NonBasicInstruction):
     opcode    = 12
-    pneumonic = 'iaq'
+    mneumonic = 'iaq'
     @staticmethod
     def Execute(dcpu,a_array,a_index):
         dcpu.cycles += 2
@@ -530,7 +530,7 @@ class IaqInstruction(NonBasicInstruction):
 
 class HwnInstruction(SettingNonBasicInstruction):
     opcode    = 16
-    pneumonic = 'hwn'
+    mneumonic = 'hwn'
     @staticmethod
     def Execute(dcpu,a_array,a_index):
         a_array[a_index] = len(dcpu.hardware)&0xffff
@@ -538,7 +538,7 @@ class HwnInstruction(SettingNonBasicInstruction):
 
 class HwqInstruction(NonBasicInstruction):
     opcode    = 17
-    pneumonic = 'hwq'
+    mneumonic = 'hwq'
     @staticmethod
     def Execute(dcpu,a_array,a_index):
         i = a_array[a_index]
@@ -555,7 +555,7 @@ class HwqInstruction(NonBasicInstruction):
 
 class HwiInstruction(NonBasicInstruction):
     opcode    = 18
-    pneumonic = 'hwi'
+    mneumonic = 'hwi'
     @staticmethod
     def Execute(dcpu,a_array,a_index):
         i = a_array[a_index]
@@ -567,7 +567,7 @@ class HwiInstruction(NonBasicInstruction):
         dcpu.cycles += hw.Interrupt()
 
 class Data(Instruction):
-    pneumonic = 'dat'
+    mneumonic = 'dat'
     def __init__(self,args):
         self.words = []
         for arg in args:
@@ -579,16 +579,16 @@ class Data(Instruction):
         return ''.join((struct.pack('>H',w) for w in self.words))
 
 class Reserved(Instruction):
-    pneumonic = 'reserved'
+    mneumonic = 'reserved'
 
 instructions = {}
 import inspect
 
 for (name,cls) in globals().items():
-    if inspect.isclass(cls) and issubclass(cls,Instruction) and hasattr(cls,'pneumonic'):
-        if cls.pneumonic == None:
+    if inspect.isclass(cls) and issubclass(cls,Instruction) and hasattr(cls,'mneumonic'):
+        if cls.mneumonic == None:
             continue
-        instructions[cls.pneumonic] = cls
+        instructions[cls.mneumonic] = cls
 
 basic_by_opcode = {instruction.opcode:instruction for instruction in instructions.itervalues() if issubclass(instruction,BasicInstruction)}
 

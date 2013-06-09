@@ -80,7 +80,7 @@ def Disassemble(memory,start,end):
             return
 
         bytes = ' '.join('%04x' % memory[i] for i in xrange(startbytes,pos))
-        yield (startbytes,bytes,ins.pneumonic,args)
+        yield (startbytes,bytes,ins.mneumonic,args)
     
 
 if __name__ == '__main__':
@@ -100,5 +100,5 @@ if __name__ == '__main__':
                 done = True
 
     total = pos
-    for startbytes,bytes,pneumonic,args in Disassemble(memory[:pos]):
-        print '%04x : %9s : %s %s' % (startbytes,bytes,pneumonic,args)
+    for startbytes,bytes,mneumonic,args in Disassemble(memory[:pos]):
+        print '%04x : %9s : %s %s' % (startbytes,bytes,mneumonic,args)
